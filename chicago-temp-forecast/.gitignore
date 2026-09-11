@@ -1,0 +1,4 @@
+# Re-downloadable from NOAA by fetch_data.py; ~11 MB of mostly unused columns.
+data/ghcn_raw.csv
+__pycache__/
+*.pyc
