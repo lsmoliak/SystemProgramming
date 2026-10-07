@@ -1,0 +1,233 @@
+<title>Risk Battle Odds</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;800&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: single phone-first column — setup card, result summary, outcome bars, then the worked math. */
+:root {
+  --bg: #eef0ea;          /* map-table green-grey */
+  --surface: #fbfcf8;
+  --ink: #1f2a24;
+  --muted: #5d6a61;
+  --line: #d3d9cf;
+  --atk: #b3261e;         /* attacker red */
+  --def: #2f5d9e;         /* defender blue */
+  --tie: #8a7a3c;         /* split outcome */
+  --accent: #2d5a3d;
+  --accent-ink: #ffffff;
+  --display: "Bitter", Georgia, serif;
+  --body: "Source Sans 3", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #151a17; --surface: #1e2520; --ink: #e6ebe4; --muted: #9aa69d; --line: #333d36;
+  --atk: #ef6b60; --def: #6f9de0; --tie: #cdb763; --accent: #6fb487; --accent-ink: #0f1511; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #151a17; --surface: #1e2520; --ink: #e6ebe4; --muted: #9aa69d; --line: #333d36;
+  --atk: #ef6b60; --def: #6f9de0; --tie: #cdb763; --accent: #6fb487; --accent-ink: #0f1511; color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--body); }
+.wrap { max-width: 34rem; margin: 0 auto; padding-inline: 16px; padding-block: 20px 40px; display: grid; gap: 18px; }
+h1 { font: 800 1.9rem/1.1 var(--display); margin: 0; text-wrap: balance; }
+h2 { font: 600 1.05rem/1.2 var(--display); margin: 0 0 10px; }
+.sub { color: var(--muted); margin: 4px 0 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+.label { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+.matchup { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; margin-bottom: 16px; }
+.side { display: grid; gap: 6px; }
+.side.def { text-align: right; justify-items: end; }
+.dice { display: flex; gap: 6px; }
+.die { width: 30px; height: 30px; border-radius: 7px; display: grid; place-items: center; font: 500 .9rem var(--mono); color: #fff; }
+.die::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
+.die.a { background: var(--atk); } .die.d { background: var(--def); }
+.vs { font: 800 1rem var(--display); color: var(--muted); }
+
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin: 6px 0 14px; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { padding: 12px 8px; text-align: center; cursor: pointer; font-weight: 600; color: var(--muted); }
+.seg label + input + label, .seg input + label + input + label { border-left: 1px solid var(--line); }
+.seg input:checked + label { background: var(--def); color: #fff; }
+.seg input:focus-visible + label { outline: 3px solid var(--accent); outline-offset: -3px; }
+
+button.go { width: 100%; padding: 14px; border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-ink); font: 600 1.05rem var(--body); cursor: pointer; }
+button.go:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.note { font-size: .85rem; color: var(--muted); margin: 10px 0 0; }
+
+.headline { display: grid; gap: 2px; }
+.big { font: 800 3rem/1 var(--display); color: var(--atk); font-variant-numeric: tabular-nums; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+.stat { border-top: 3px solid var(--line); padding-top: 8px; }
+.stat.a { border-color: var(--atk); } .stat.d { border-color: var(--def); }
+.stat b { display: block; font: 600 1.5rem var(--mono); font-variant-numeric: tabular-nums; }
+.stat span { font-size: .85rem; color: var(--muted); }
+
+.bars { display: grid; gap: 14px; }
+.row { display: grid; gap: 4px; }
+.row-top { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.row-top strong { font-weight: 600; }
+.row-top .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.track { height: 14px; background: var(--line); border-radius: 7px; overflow: hidden; }
+.fill { height: 100%; border-radius: 7px; transition: width .4s ease; }
+.frac { font: 500 .8rem var(--mono); color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
+
+.math { font-size: .95rem; }
+.math p { margin: 0 0 10px; max-width: 65ch; }
+.math code, .mono { font-family: var(--mono); font-size: .88em; }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: .9rem; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-weight: 600; font-size: .8rem; }
+.ok { color: var(--accent); font-weight: 600; }
+a { color: var(--def); }
+</style>
+
+<main class="wrap">
+  <header>
+    <h1>Risk Battle Odds</h1>
+    <p class="sub">Odds for a single roll: attacker throws 3 dice.</p>
+  </header>
+
+  <section class="card" aria-labelledby="setup-h">
+    <div class="matchup" aria-hidden="true">
+      <div class="side">
+        <span class="label">Attacker</span>
+        <div class="dice"><span class="die a"></span><span class="die a"></span><span class="die a"></span></div>
+      </div>
+      <span class="vs">vs</span>
+      <div class="side def">
+        <span class="label">Defender</span>
+        <div class="dice" id="defDice"></div>
+      </div>
+    </div>
+
+    <h2 id="setup-h">Defending armies</h2>
+    <div class="seg" role="radiogroup" aria-label="Defending armies">
+      <input type="radio" name="def" id="def1" value="1"><label for="def1">1 army</label>
+      <input type="radio" name="def" id="def2" value="2" checked><label for="def2">2 armies</label>
+    </div>
+    <button class="go" id="calc" type="button">Calculate</button>
+    <p class="note">The attacker has 4 armies: 3 attack and 1 must stay behind. The defender rolls one die per army, up to 2. Defender wins ties.</p>
+  </section>
+
+  <section class="card" id="result" aria-live="polite">
+    <div class="headline">
+      <span class="label">Attacker wins (defender wiped out this roll)</span>
+      <span class="big" id="winPct">–</span>
+    </div>
+    <div class="stats">
+      <div class="stat a"><b id="atkLeft">–</b><span>expected attacker armies left (of 4)</span></div>
+      <div class="stat d"><b id="defLeft">–</b><span id="defLeftLbl">expected defender armies left</span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Possible outcomes</h2>
+    <div class="bars" id="bars"></div>
+  </section>
+
+  <section class="card math">
+    <h2>How the math works</h2>
+    <p>Each die is fair, so every combination of faces is equally likely. With 3 attacking dice and <span class="mono">d</span> defending dice there are <span class="mono">6<sup>3+d</sup></span> combinations. Sort both hands high to low and compare the top pairs: highest vs highest, then second vs second. The higher die wins; the defender wins ties.</p>
+    <p><strong>3 vs 1.</strong> The attacker wins if their highest die beats the defender's die. For a defender roll of <span class="mono">k</span>, the attacker loses only if all three dice are ≤ <span class="mono">k</span>, which happens <span class="mono">k³</span> ways. Summed over <span class="mono">k = 1…6</span>: <span class="mono">1+8+27+64+125+216 = 441</span> losing combos out of <span class="mono">6×216 = 1296</span>. So the attacker wins <span class="mono">855/1296 ≈ 65.97%</span>.</p>
+    <p><strong>3 vs 2.</strong> The two comparisons depend on each other, so there is no tidy closed form. The page counts all <span class="mono">7776</span> combinations directly. That gives 2890 where the defender loses 2, 2611 where each side loses 1, and 2275 where the attacker loses 2.</p>
+    <p><strong>Checked against an online source.</strong> These match the dice-odds table by David Karr in the <a href="https://www.djm.cc/rpa-output/competition/games/risk.s" target="_blank" rel="noopener">rec.puzzles Risk archive</a>:</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Matchup</th><th>Outcome</th><th>This page</th><th>Source</th><th></th></tr></thead>
+        <tbody id="checkRows"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  const ATK_DICE = 3, ATK_ARMIES = 4;
+
+  // Exact distribution of attacker losses for one roll, by enumerating every face combination.
+  function rollDistribution(defDice) {
+    const n = ATK_DICE + defDice, total = Math.pow(6, n);
+    const counts = new Array(defDice + 1).fill(0); // index = armies attacker loses
+    const faces = new Array(n);
+    for (let i = 0; i < total; i++) {
+      let x = i;
+      for (let j = 0; j < n; j++) { faces[j] = (x % 6) + 1; x = Math.floor(x / 6); }
+      const a = faces.slice(0, ATK_DICE).sort((p, q) => q - p);
+      const d = faces.slice(ATK_DICE).sort((p, q) => q - p);
+      let atkLoss = 0;
+      for (let k = 0; k < defDice; k++) if (a[k] <= d[k]) atkLoss++;
+      counts[atkLoss]++;
+    }
+    return { total, counts };
+  }
+
+  function drawDefDice(n) {
+    document.getElementById("defDice").innerHTML = '<span class="die d"></span>'.repeat(n);
+  }
+
+  const pct = v => (v * 100).toFixed(2) + "%";
+  
+  function outcomes(defArmies) {
+    const { total, counts } = rollDistribution(defArmies);
+    return counts.map((c, atkLoss) => {
+      const defLoss = defArmies - atkLoss;
+      return { atkLoss, defLoss, count: c, total, p: c / total };
+    });
+  }
+
+  function describe(o, defArmies) {
+    if (o.defLoss === defArmies) return "Defender wiped out";
+    if (o.atkLoss === defArmies) return "Attacker loses " + o.atkLoss + (o.atkLoss === 1 ? " army" : " armies");
+    return "Each side loses 1";
+  }
+
+  function render() {
+    const defArmies = Number(document.querySelector('input[name="def"]:checked').value);
+    drawDefDice(defArmies);
+
+    const outs = outcomes(defArmies);
+    const win = outs.find(o => o.defLoss === defArmies).p;
+    const expAtkLoss = outs.reduce((s, o) => s + o.p * o.atkLoss, 0);
+    const expDefLoss = outs.reduce((s, o) => s + o.p * o.defLoss, 0);
+
+    document.getElementById("winPct").textContent = pct(win);
+    document.getElementById("atkLeft").textContent = (ATK_ARMIES - expAtkLoss).toFixed(3);
+    document.getElementById("defLeft").textContent = (defArmies - expDefLoss).toFixed(3);
+    document.getElementById("defLeftLbl").textContent = "expected defender armies left (of " + defArmies + ")";
+
+    // Order: best for attacker first.
+    const sorted = outs.slice().sort((x, y) => x.atkLoss - y.atkLoss);
+    document.getElementById("bars").innerHTML = sorted.map(o => {
+      const color = o.defLoss === defArmies ? "var(--atk)" : (o.atkLoss === defArmies ? "var(--def)" : "var(--tie)");
+      return '<div class="row">' +
+        '<div class="row-top"><strong>' + describe(o, defArmies) + '</strong><span class="num">' + pct(o.p) + '</span></div>' +
+        '<div class="track"><div class="fill" style="width:' + (o.p * 100) + '%;background:' + color + '"></div></div>' +
+        '<span class="frac">' + o.count + '/' + o.total + ' · attacker −' + o.atkLoss + ', defender −' + o.defLoss + '</span>' +
+        '</div>';
+    }).join("");
+  }
+
+  // Cross-check every outcome against the published table (David Karr, rec.puzzles archive).
+  const PUBLISHED = [
+    { d: 1, atkLoss: 0, count: 855,  total: 1296 },
+    { d: 1, atkLoss: 1, count: 441,  total: 1296 },
+    { d: 2, atkLoss: 0, count: 2890, total: 7776 },
+    { d: 2, atkLoss: 1, count: 2611, total: 7776 },
+    { d: 2, atkLoss: 2, count: 2275, total: 7776 },
+  ];
+  const cache = { 1: outcomes(1), 2: outcomes(2) };
+  document.getElementById("checkRows").innerHTML = PUBLISHED.map(r => {
+    const mine = cache[r.d][r.atkLoss];
+    const ok = mine.count === r.count && mine.total === r.total;
+    return "<tr><td>3 v " + r.d + "</td><td>A −" + r.atkLoss + ", D −" + (r.d - r.atkLoss) + "</td>" +
+      '<td class="mono">' + mine.count + "/" + mine.total + '</td><td class="mono">' + r.count + "/" + r.total + "</td>" +
+      '<td class="' + (ok ? "ok" : "") + '">' + (ok ? "Match" : "Differs") + "</td></tr>";
+  }).join("");
+
+  document.getElementById("calc").addEventListener("click", render);
+  document.querySelectorAll('input[name="def"]').forEach(el =>
+    el.addEventListener("change", () => drawDefDice(Number(el.value))));
+  render();
+})();
+</script>
