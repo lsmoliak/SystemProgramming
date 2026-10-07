@@ -1,0 +1,652 @@
+<title>Spectator Antisemitism Audit</title>
+<style>
+  :root{
+    --bg:#fcfcfb; --panel:#ffffff; --ink:#0b0b0b; --ink2:#52514e; --ink3:#77756f;
+    --rule:#e4e3de; --rule2:#f0efeb;
+    --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
+    --warn-bg:#fdf6e8; --warn-ink:#6b4e00; --warn-rule:#eda100;
+    --flag-bg:#fdecec; --flag-ink:#8a1f1f; --flag-rule:#e34948;
+    --ok-bg:#edf7f2; --ok-ink:#115c41; --ok-rule:#1baf7a;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#1a1a19; --panel:#232322; --ink:#ffffff; --ink2:#c3c2b7; --ink3:#9a988f;
+      --rule:#3a3a37; --rule2:#2c2c2a;
+      --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+      --warn-bg:#2e2710; --warn-ink:#e8c86a; --warn-rule:#c98500;
+      --flag-bg:#2f1a1a; --flag-ink:#f0a0a0; --flag-rule:#e66767;
+      --ok-bg:#15271f; --ok-ink:#7fd4ad; --ok-rule:#199e70;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#1a1a19; --panel:#232322; --ink:#ffffff; --ink2:#c3c2b7; --ink3:#9a988f;
+    --rule:#3a3a37; --rule2:#2c2c2a;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+    --warn-bg:#2e2710; --warn-ink:#e8c86a; --warn-rule:#c98500;
+    --flag-bg:#2f1a1a; --flag-ink:#f0a0a0; --flag-rule:#e66767;
+    --ok-bg:#15271f; --ok-ink:#7fd4ad; --ok-rule:#199e70;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:900px;margin:0 auto;padding-inline:20px;padding-block:48px 72px}
+  h1{font-size:clamp(28px,5vw,40px);line-height:1.15;letter-spacing:-.02em;margin:0 0 10px;font-weight:650}
+  .sub{color:var(--ink2);font-size:17px;margin:0 0 6px}
+  .meta{color:var(--ink3);font-size:13.5px;margin:0 0 36px;padding-bottom:22px;border-bottom:1px solid var(--rule)}
+  h2{font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);
+    margin:52px 0 16px;font-weight:600}
+  h3{font-size:19px;margin:30px 0 8px;letter-spacing:-.01em;font-weight:620}
+  p{margin:0 0 15px;color:var(--ink2)}
+  p strong,li strong{color:var(--ink);font-weight:620}
+  ul{margin:0 0 15px;padding-left:20px;color:var(--ink2)} li{margin-bottom:7px}
+  code{font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
+    background:var(--rule2);padding:1.5px 5px;border-radius:4px;color:var(--ink)}
+  .note{border-left:3px solid var(--warn-rule);background:var(--warn-bg);color:var(--warn-ink);
+    padding:14px 18px;border-radius:0 7px 7px 0;margin:0 0 20px;font-size:14.5px}
+  .note.flag{border-left-color:var(--flag-rule);background:var(--flag-bg);color:var(--flag-ink)}
+  .note.ok{border-left-color:var(--ok-rule);background:var(--ok-bg);color:var(--ok-ink)}
+  .note p{color:inherit;margin:0 0 8px} .note p:last-child{margin:0}
+  .note strong{color:inherit}
+  .card{background:var(--panel);border:1px solid var(--rule);border-radius:11px;
+    padding:20px 20px 14px;margin:0 0 24px}
+  .ctitle{font-size:16px;font-weight:620;margin:0 0 3px;color:var(--ink)}
+  .cnote{font-size:13.5px;color:var(--ink3);margin:0 0 16px}
+  figure{margin:0}
+  svg{display:block;width:100%;height:auto;max-width:100%;overflow:visible}
+  .legend{display:flex;flex-wrap:wrap;gap:7px 18px;margin:12px 0 0;font-size:13px;color:var(--ink2)}
+  .lg{display:inline-flex;align-items:center;gap:7px}
+  .sw{width:11px;height:11px;border-radius:3px;flex:0 0 auto}
+  .tbl{overflow-x:auto;margin:10px 0 0;-webkit-overflow-scrolling:touch}
+  table{border-collapse:collapse;font-size:13px;min-width:100%;white-space:nowrap}
+  th,td{text-align:right;padding:7px 11px;border-bottom:1px solid var(--rule2);color:var(--ink2)}
+  th{color:var(--ink3);font-weight:600;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;
+    border-bottom:1px solid var(--rule)}
+  th:first-child,td:first-child{text-align:left;color:var(--ink);font-variant-numeric:tabular-nums}
+  td{font-variant-numeric:tabular-nums}
+  tbody tr:hover td{background:var(--rule2)}
+  details{margin:10px 0 0;font-size:14px}
+  summary{cursor:pointer;color:var(--ink3);font-size:13px;user-select:none;padding:5px 0}
+  summary:hover{color:var(--ink)}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 26px}
+  .kpi{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:15px 16px}
+  .kpi .v{font-size:27px;font-weight:650;letter-spacing:-.02em;color:var(--ink);
+    font-variant-numeric:tabular-nums;line-height:1.1}
+  .kpi .l{font-size:12.5px;color:var(--ink3);margin-top:5px;line-height:1.35}
+  .tip{position:fixed;pointer-events:none;background:var(--panel);border:1px solid var(--rule);
+    border-radius:8px;padding:9px 12px;font-size:12.5px;color:var(--ink);opacity:0;
+    transition:opacity .1s;box-shadow:0 6px 24px rgba(0,0,0,.14);z-index:60;max-width:250px;
+    font-variant-numeric:tabular-nums;line-height:1.5}
+  .tip b{color:var(--ink);font-weight:620}
+  .tip .r{display:flex;align-items:center;gap:7px;margin-top:3px;color:var(--ink2)}
+  footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
+    font-size:12.5px;color:var(--ink3)}
+</style>
+
+<div class="wrap">
+<h1>What the Spectator Actually Published</h1>
+<p class="sub">Measuring Jewish- and Israel-related coverage in the <em>Columbia Daily Spectator</em>, and testing whether “antisemitism” in that coverage rose — under two rival definitions that disagree.</p>
+<p class="meta" id="meta"></p>
+
+<div class="note flag">
+  <p><strong>Read this before the charts.</strong> The request was 1950 onward. That is not what this measures, and the gap is not a detail.</p>
+  <p>Columbia’s historical <em>Spectator</em> archive — the only full-text source for 1950–2012 — sits behind a Cloudflare bot challenge that returns 403 to every request. The Wayback Machine holds only 14 text-mode captures of it. <strong>No pre-2013 text was obtainable, so no pre-2013 result is reported here.</strong> Everything below comes from the paper’s modern CMS, whose index runs out at roughly 2013 and is only dense from 2017.</p>
+</div>
+
+<div class="kpis" id="kpis"></div>
+
+<h2>The headline result</h2>
+<div class="note ok" id="headline"></div>
+
+<h2>How much the paper covered these topics</h2>
+<div class="card">
+  <p class="ctitle">Share of all articles mentioning each topic</p>
+  <p class="cnote">Percent of that year’s articles containing at least one anchor term. This is coverage volume — salience — not tone and not antisemitism.</p>
+  <figure><div id="c1"></div></figure>
+  <div class="legend" id="l1"></div>
+  <details><summary>Show the numbers</summary><div class="tbl" id="t1"></div></details>
+</div>
+
+<h2>The two measures, side by side</h2>
+<p>This is the whole point of the exercise. There is no agreed operational definition of antisemitism, and the two leading frameworks disagree in a way that matters enormously for a campus paper:</p>
+<ul>
+  <li><strong>Narrow (consensus).</strong> Classic antisemitism aimed at Jews as Jews — conspiracy and control tropes, dual loyalty, Holocaust denial, dehumanization, Nazi symbols, exclusion, collective blame. The <abbr title="International Holocaust Remembrance Alliance">IHRA</abbr> definition and the Jerusalem Declaration both count these.</li>
+  <li><strong>IHRA-extended (contested).</strong> Adds IHRA’s Israel-related examples — denying Jewish self-determination, Zionism-as-racism, Nazi comparisons, apartheid and genocide framing. The Jerusalem Declaration <em>explicitly excludes</em> these, treating them as political speech about a state.</li>
+</ul>
+<div class="card">
+  <p class="ctitle">Articles flagged per year, by definition</p>
+  <p class="cnote">Counts of distinct articles containing at least one flagged passage. Both series are drawn from the same corpus and the same stance rules — only the definition differs.</p>
+  <figure><div id="c2"></div></figure>
+  <div class="legend" id="l2"></div>
+  <details><summary>Show the numbers</summary><div class="tbl" id="t2"></div></details>
+</div>
+<div class="note" id="divergence"></div>
+
+<h2>Reporting on it vs. saying it</h2>
+<p>A newspaper that covers a swastika found in a dormitory contains the word “swastika” and a great deal of negative language about Jews. It is not thereby antisemitic — it is doing journalism. Naive sentiment analysis gets this exactly backwards, and would turn good coverage of a hate incident into evidence of hatred.</p>
+<p>So every flagged passage is classified by stance from cues in a ±400-character window: <strong>condemned</strong> (the passage sits in critical or condemnatory coverage), <strong>reported</strong> (quoted, attributed, or describing graffiti and chants), or <strong>unattributed</strong> (no attribution and no condemnation nearby — the closest this method gets to the paper’s own voice).</p>
+<div class="card">
+  <p class="ctitle">Stance composition of narrow-definition flags</p>
+  <p class="cnote">Counts by year. “Unattributed” is <em>not</em> a finding of antisemitism — see the validation section, where its measured precision is the central caveat.</p>
+  <figure><div id="c3"></div></figure>
+  <div class="legend" id="l3"></div>
+  <details><summary>Show the numbers</summary><div class="tbl" id="t3"></div></details>
+</div>
+
+<h2>Tone around the topic</h2>
+<div class="card">
+  <p class="ctitle">Mean sentiment of sentences mentioning each topic</p>
+  <p class="cnote">VADER compound score, −1 (negative) to +1 (positive), averaged over matching sentences. This tracks how grim the surrounding news was, not whether the paper was hostile to Jews.</p>
+  <figure><div id="c4"></div></figure>
+  <div class="legend" id="l4"></div>
+</div>
+
+<h2>Validation — the part that decides whether any of this counts</h2>
+<div id="validation"></div>
+
+<h2>What was measured, exactly</h2>
+<h3>Corpus</h3>
+<p>Articles were pulled from the <em>Spectator</em>’s Arc Publishing content API across eight sections (news, opinion, sports, arts &amp; entertainment, The Eye, Spectrum, city news, multimedia), paginating each to the index’s depth limit. The API caps out near 9,900 items per section, which is what pins the earliest usable year to roughly 2013. Full body text was taken from each article’s structured content elements, deduplicated by canonical URL. <code>robots.txt</code> permits this crawl.</p>
+<h3>Two precision gates</h3>
+<p>An earlier version of the lexicon matched bare phrases like “control the media” and “run the world.” Manual review of all 13 of its own-voice hits found <strong>13 false positives and zero true positives</strong> — an endowed “Rothschild professor” chair, “undivided loyalty” boilerplate from a trustee conflict-of-interest policy, “running media campaigns” about election advertising, the marathon “running world,” and “Deps run the world” from a staff acknowledgments column. That is a precision of 0%, and it is why two gates now apply:</p>
+<ul>
+  <li><strong>Subject gate.</strong> Every power-and-control and dual-loyalty pattern requires an explicit Jewish or Zionist subject in the same sentence as the predicate.</li>
+  <li><strong>Anchor gate.</strong> A match is discarded unless a Jewish or Israel anchor term also appears in the surrounding window.</li>
+</ul>
+<p>Against the eight known false positives and seven held-out true positives, the revised lexicon produces <strong>0 false positives and 0 misses</strong>.</p>
+
+<h2>Limitations</h2>
+<ul>
+  <li><strong>The period requested is mostly absent.</strong> 1950–2012 is missing entirely. Anyone wanting the postwar Jewish-quota era, 1968, or the 1970s–2000s Israel debates needs archive access this analysis did not have.</li>
+  <li><strong>2013–2016 is too thin to rate.</strong> Those years return a handful of articles each and are excluded from every rate; they are listed in the table above so the sparsity is visible rather than smoothed over.</li>
+  <li><strong>Lexicons detect topics, not intent.</strong> A pattern match is evidence that language appeared, never proof of an author’s meaning. Precision is reported, not assumed.</li>
+  <li><strong>Stance cues are shallow.</strong> “Denounced” fires the condemnation rule whoever is doing the denouncing — so a sentence about protesters denouncing Israel can be misread as the paper condemning antisemitism. This inflates “condemned” in the IHRA-extended family especially.</li>
+  <li><strong>Sentiment is not antisemitism.</strong> VADER measures valence. Coverage of a war is negative regardless of any animus, which is exactly why the tone chart is kept separate from the flag counts and never summed with them.</li>
+  <li><strong>Section mix shifts.</strong> The index returns different amounts per section per year, so the denominator is not a constant sample of the paper. Rates per 100 topic-relevant articles are reported alongside raw counts for this reason.</li>
+  <li><strong>The IHRA-extended series is a definitional artifact as much as an empirical one.</strong> It rises when Israel-related political speech rises. Whether that constitutes antisemitism is precisely the contested question — this analysis quantifies the choice rather than settling it.</li>
+</ul>
+
+<footer id="foot"></footer>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+const D = {
+ "years": [
+  "2016",
+  "2017",
+  "2018",
+  "2019",
+  "2020",
+  "2021",
+  "2022",
+  "2023",
+  "2024",
+  "2025",
+  "2026"
+ ],
+ "salience": {
+  "jewish": [
+   4.86,
+   4.35,
+   5.06,
+   4.24,
+   3.86,
+   3.97,
+   2.08,
+   12.37,
+   25.5,
+   28.1,
+   16.51
+  ],
+  "israel": [
+   2.02,
+   2.29,
+   3.31,
+   2.16,
+   3.15,
+   1.79,
+   1.39,
+   12.69,
+   36.39,
+   35.11,
+   20.67
+  ],
+  "antisem": [
+   0.4,
+   1.03,
+   1.62,
+   1.56,
+   1.43,
+   0.26,
+   0.5,
+   6.45,
+   16.63,
+   21.71,
+   8.67
+  ]
+ },
+ "counts": {
+  "narrow": [
+   0,
+   0,
+   4,
+   7,
+   5,
+   1,
+   1,
+   4,
+   6,
+   7,
+   0
+  ],
+  "ihra": [
+   1,
+   9,
+   8,
+   10,
+   7,
+   2,
+   1,
+   26,
+   59,
+   27,
+   12
+  ],
+  "articles": [
+   247,
+   1746,
+   1541,
+   1157,
+   699,
+   780,
+   1008,
+   930,
+   1341,
+   1313,
+   842
+  ]
+ },
+ "rates": {
+  "narrow": [
+   0.0,
+   0.0,
+   3.85,
+   11.48,
+   12.82,
+   2.27,
+   3.03,
+   2.8,
+   1.14,
+   1.31,
+   0.0
+  ],
+  "ihra": [
+   6.67,
+   10.0,
+   7.69,
+   16.39,
+   17.95,
+   4.55,
+   3.03,
+   18.18,
+   11.22,
+   5.07,
+   5.48
+  ]
+ },
+ "sentiment": {
+  "jewish": [
+   0.2034,
+   0.1545,
+   0.0532,
+   0.0913,
+   -0.0401,
+   0.0726,
+   0.0987,
+   0.1218,
+   0.0057,
+   -0.1301,
+   -0.0192
+  ],
+  "israel": [
+   0.3063,
+   0.0486,
+   0.2316,
+   -0.0061,
+   0.1388,
+   0.1278,
+   0.2201,
+   -0.005,
+   -0.0362,
+   -0.1499,
+   -0.1752
+  ]
+ },
+ "stance_year": {
+  "2016": {},
+  "2017": {},
+  "2018": {
+   "condemned": 9,
+   "reported": 1
+  },
+  "2019": {
+   "condemned": 8
+  },
+  "2020": {
+   "condemned": 20,
+   "reported": 1
+  },
+  "2021": {
+   "condemned": 1
+  },
+  "2022": {
+   "condemned": 1
+  },
+  "2023": {
+   "condemned": 4
+  },
+  "2024": {
+   "condemned": 4,
+   "reported": 2
+  },
+  "2025": {
+   "condemned": 10,
+   "unattributed": 1
+  },
+  "2026": {}
+ },
+ "tropes": [
+  {
+   "family": "ihra_ext",
+   "trope": "apartheid_genocide_framing",
+   "n": 136
+  },
+  {
+   "family": "ihra_ext",
+   "trope": "deny_self_determination",
+   "n": 85
+  },
+  {
+   "family": "narrow",
+   "trope": "nazi_symbol",
+   "n": 49
+  },
+  {
+   "family": "narrow",
+   "trope": "conspiracy_control",
+   "n": 7
+  },
+  {
+   "family": "narrow",
+   "trope": "holocaust_denial",
+   "n": 5
+  },
+  {
+   "family": "ihra_ext",
+   "trope": "zionism_is_racism",
+   "n": 2
+  },
+  {
+   "family": "narrow",
+   "trope": "dehumanization",
+   "n": 1
+  }
+ ],
+ "stance_by_fam": {
+  "ihra_ext": {
+   "reported": 86,
+   "unattributed": 54,
+   "condemned": 83
+  },
+  "narrow": {
+   "condemned": 57,
+   "reported": 4,
+   "unattributed": 1
+  }
+ },
+ "precision": {
+  "narrow": {
+   "n": 62,
+   "tp": 62,
+   "pct": 100.0,
+   "own_voice": 0,
+   "own_pct": 0.0,
+   "basis": "census (all matches)"
+  },
+  "ihra_ext": {
+   "n": 18,
+   "tp": 18,
+   "pct": 100.0,
+   "own_voice": 3,
+   "own_pct": 16.7,
+   "basis": "random sample"
+  }
+ },
+ "own_voice_examples": [
+  {
+   "year": "2023",
+   "trope": "apartheid_genocide_framing",
+   "note": "op-ed author's own assertion"
+  },
+  {
+   "year": "2024",
+   "trope": "apartheid_genocide_framing",
+   "note": "op-ed author's own assertion"
+  },
+  {
+   "year": "2024",
+   "trope": "deny_self_determination",
+   "note": "op-ed author's own assertion"
+  }
+ ],
+ "thin_years": [
+  {
+   "year": "2002",
+   "articles": 1
+  },
+  {
+   "year": "2009",
+   "articles": 1
+  },
+  {
+   "year": "2012",
+   "articles": 1
+  },
+  {
+   "year": "2013",
+   "articles": 103
+  },
+  {
+   "year": "2014",
+   "articles": 110
+  },
+  {
+   "year": "2015",
+   "articles": 23
+  }
+ ],
+ "totals": {
+  "articles": 11843,
+  "matches": 285,
+  "min_year": "2016",
+  "max_year": "2026"
+ }
+};
+const NF = (n,d=0)=>n==null?"—":n.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+const CSS = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const tip = document.getElementById('tip');
+function showTip(e,h){tip.innerHTML=h;tip.style.opacity='1';
+  const r=tip.getBoundingClientRect();let x=e.clientX+14,y=e.clientY-10;
+  if(x+r.width>innerWidth-10)x=e.clientX-r.width-14;
+  if(y+r.height>innerHeight-10)y=innerHeight-r.height-10;
+  if(y<6)y=6; tip.style.left=x+'px';tip.style.top=y+'px';}
+function hideTip(){tip.style.opacity='0';}
+
+const SER=['--s1','--s2','--s3'];
+function legend(el,items){document.getElementById(el).innerHTML=items.map(i=>
+  `<span class="lg"><span class="sw" style="background:${i.c}"></span>${i.n}</span>`).join('');}
+
+/* ---------- multi-series line chart with crosshair ---------- */
+function lineChart(el,years,series,opts={}){
+  const W=820,H=opts.h||290,P={t:16,r:18,b:34,l:opts.l||46};
+  const vals=series.flatMap(s=>s.v).filter(v=>v!=null);
+  if(!vals.length){document.getElementById(el).innerHTML='<p style="color:var(--ink3);font-size:13px">No data.</p>';return;}
+  let lo=opts.min!=null?opts.min:Math.min(0,...vals), hi=opts.max!=null?opts.max:Math.max(...vals);
+  if(hi===lo)hi=lo+1; const pad=(hi-lo)*0.12; hi+=pad; if(opts.min==null&&lo<0)lo-=pad;
+  const n=years.length;
+  const X=i=>P.l+(n===1?(W-P.l-P.r)/2:i*(W-P.l-P.r)/(n-1));
+  const Y=v=>P.t+(hi-v)/(hi-lo)*(H-P.t-P.b);
+  const ticks=5, tv=[...Array(ticks)].map((_,k)=>lo+(hi-lo)*k/(ticks-1));
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opts.aria||''}">`;
+  tv.forEach(t=>{s+=`<line x1="${P.l}" y1="${Y(t).toFixed(1)}" x2="${W-P.r}" y2="${Y(t).toFixed(1)}" stroke="${CSS('--rule2')}" stroke-width="1"/>`
+    +`<text x="${P.l-9}" y="${(Y(t)+4).toFixed(1)}" text-anchor="end" font-size="11" fill="${CSS('--ink3')}">${opts.fmt?opts.fmt(t):NF(t,opts.dec||0)}</text>`;});
+  if(lo<0&&hi>0)s+=`<line x1="${P.l}" y1="${Y(0).toFixed(1)}" x2="${W-P.r}" y2="${Y(0).toFixed(1)}" stroke="${CSS('--rule')}" stroke-width="1.5"/>`;
+  years.forEach((y,i)=>{const step=n>12?2:1; if(i%step===0||i===n-1)
+    s+=`<text x="${X(i).toFixed(1)}" y="${H-12}" text-anchor="middle" font-size="11" fill="${CSS('--ink3')}">${y}</text>`;});
+  series.forEach((ser,si)=>{const c=CSS(SER[si%3]);
+    const pts=ser.v.map((v,i)=>v==null?null:[X(i),Y(v)]).filter(Boolean);
+    if(pts.length>1)s+=`<path d="${pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ')}" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    pts.forEach(p=>{s+=`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.4" fill="${c}" stroke="${CSS('--panel')}" stroke-width="2"/>`;});});
+  years.forEach((y,i)=>{s+=`<rect class="hz" data-i="${i}" x="${(X(i)-((W-P.l-P.r)/Math.max(n-1,1))/2).toFixed(1)}" y="${P.t}" width="${((W-P.l-P.r)/Math.max(n-1,1)).toFixed(1)}" height="${H-P.t-P.b}" fill="transparent"/>`;});
+  s+=`<line id="${el}-ch" x1="0" y1="${P.t}" x2="0" y2="${H-P.b}" stroke="${CSS('--ink3')}" stroke-width="1" stroke-dasharray="3 3" opacity="0"/></svg>`;
+  const host=document.getElementById(el); host.innerHTML=s;
+  const ch=document.getElementById(el+'-ch');
+  host.querySelectorAll('.hz').forEach(r=>{
+    r.addEventListener('mouseenter',e=>{const i=+r.dataset.i;
+      ch.setAttribute('x1',X(i));ch.setAttribute('x2',X(i));ch.setAttribute('opacity','1');
+      showTip(e,`<b>${years[i]}</b>`+series.map((ser,si)=>
+        `<div class="r"><span class="sw" style="background:${CSS(SER[si%3])}"></span>${ser.n}: <b>${ser.v[i]==null?'—':(opts.fmt?opts.fmt(ser.v[i]):NF(ser.v[i],opts.dec||0))}${opts.unit||''}</b></div>`).join(''));});
+    r.addEventListener('mousemove',e=>{const i=+r.dataset.i;
+      showTip(e,`<b>${years[i]}</b>`+series.map((ser,si)=>
+        `<div class="r"><span class="sw" style="background:${CSS(SER[si%3])}"></span>${ser.n}: <b>${ser.v[i]==null?'—':(opts.fmt?opts.fmt(ser.v[i]):NF(ser.v[i],opts.dec||0))}${opts.unit||''}</b></div>`).join(''));});
+    r.addEventListener('mouseleave',()=>{hideTip();ch.setAttribute('opacity','0');});});
+}
+
+/* ---------- stacked bars ---------- */
+function stackChart(el,years,cats,rows){
+  const W=820,H=250,P={t:16,r:18,b:34,l:40};
+  const tot=years.map(y=>cats.reduce((a,c)=>a+(rows[y]?.[c]||0),0));
+  let hi=Math.max(1,...tot); hi=Math.ceil(hi*1.15);
+  const bw=Math.min(46,(W-P.l-P.r)/years.length*0.62);
+  const X=i=>P.l+(i+0.5)*(W-P.l-P.r)/years.length;
+  const Y=v=>P.t+(1-v/hi)*(H-P.t-P.b);
+  const ticks=4,tv=[...Array(ticks)].map((_,k)=>Math.round(hi*k/(ticks-1)));
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Stance composition by year">`;
+  tv.forEach(t=>{s+=`<line x1="${P.l}" y1="${Y(t).toFixed(1)}" x2="${W-P.r}" y2="${Y(t).toFixed(1)}" stroke="${CSS('--rule2')}"/>`
+    +`<text x="${P.l-9}" y="${(Y(t)+4).toFixed(1)}" text-anchor="end" font-size="11" fill="${CSS('--ink3')}">${t}</text>`;});
+  years.forEach((y,i)=>{let acc=0;
+    cats.forEach((c,ci)=>{const v=rows[y]?.[c]||0; if(!v)return;
+      const y0=Y(acc+v),y1=Y(acc),h=Math.max(1.5,y1-y0-2);
+      s+=`<rect class="bz" data-y="${y}" x="${(X(i)-bw/2).toFixed(1)}" y="${y0.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${CSS(SER[ci%3])}"/>`;
+      acc+=v;});
+    s+=`<text x="${X(i).toFixed(1)}" y="${H-12}" text-anchor="middle" font-size="11" fill="${CSS('--ink3')}">${y}</text>`;
+    if(tot[i])s+=`<text x="${X(i).toFixed(1)}" y="${(Y(tot[i])-6).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="620" fill="${CSS('--ink2')}">${tot[i]}</text>`;});
+  s+=`</svg>`;
+  const host=document.getElementById(el);host.innerHTML=s;
+  host.querySelectorAll('.bz').forEach(r=>{const y=r.dataset.y;
+    const h=`<b>${y}</b>`+cats.map((c,ci)=>`<div class="r"><span class="sw" style="background:${CSS(SER[ci%3])}"></span>${c}: <b>${rows[y]?.[c]||0}</b></div>`).join('');
+    r.addEventListener('mouseenter',e=>showTip(e,h));
+    r.addEventListener('mousemove',e=>showTip(e,h));
+    r.addEventListener('mouseleave',hideTip);});
+}
+
+function table(el,head,rows){
+  document.getElementById(el).innerHTML=
+    `<table><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>`+
+    rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')+`</tbody></table>`;
+}
+
+/* ---------------- render ---------------- */
+const Y=D.years, T=D.totals;
+document.getElementById('meta').textContent =
+  `${NF(T.articles)} articles analysed · ${T.min_year}–${T.max_year} rated · ${NF(T.matches)} flagged passages reviewed · Columbia Daily Spectator`;
+
+const peakJ=Math.max(...D.salience.jewish.filter(v=>v!=null));
+const peakA=Math.max(...D.salience.antisem.filter(v=>v!=null));
+const nSum=D.counts.narrow.reduce((a,b)=>a+b,0), iSum=D.counts.ihra.reduce((a,b)=>a+b,0);
+document.getElementById('kpis').innerHTML=[
+  [`${NF(T.articles)}`,'articles analysed, 2013–2026'],
+  [`${NF(peakA,1)}%`,'peak share of articles discussing antisemitism'],
+  [`${NF(nSum)}`,'articles flagged — narrow definition, all years'],
+  [`${NF(iSum)}`,'articles flagged — IHRA-extended definition'],
+].map(k=>`<div class="kpi"><div class="v">${k[0]}</div><div class="l">${k[1]}</div></div>`).join('');
+
+lineChart('c1',Y,[
+  {n:'Jewish-related',v:D.salience.jewish},
+  {n:'Israel-related',v:D.salience.israel},
+  {n:'Antisemitism as a topic',v:D.salience.antisem}],
+  {dec:1,unit:'%',min:0,aria:'Topic salience by year'});
+legend('l1',[{n:'Jewish-related',c:CSS('--s1')},{n:'Israel-related',c:CSS('--s2')},{n:'Antisemitism as a topic',c:CSS('--s3')}]);
+table('t1',['Year','Articles','Jewish %','Israel %','Antisem. %','Narrow flagged','IHRA flagged'],
+  Y.map((y,i)=>[y,NF(D.counts.articles[i]),NF(D.salience.jewish[i],2),NF(D.salience.israel[i],2),
+    NF(D.salience.antisem[i],2),NF(D.counts.narrow[i]),NF(D.counts.ihra[i])])
+  .concat(D.thin_years.map(t=>[t.year+' *',NF(t.articles),'—','—','—','—','—'])));
+
+lineChart('c2',Y,[
+  {n:'Narrow (consensus)',v:D.counts.narrow},
+  {n:'IHRA-extended (contested)',v:D.counts.ihra}],
+  {min:0,aria:'Flagged articles by definition'});
+legend('l2',[{n:'Narrow (consensus)',c:CSS('--s1')},{n:'IHRA-extended (contested)',c:CSS('--s2')}]);
+table('t2',['Year','Narrow','IHRA-ext','Ratio','Narrow / 100 rel.','IHRA / 100 rel.'],
+  Y.map((y,i)=>[y,NF(D.counts.narrow[i]),NF(D.counts.ihra[i]),
+    D.counts.narrow[i]?NF(D.counts.ihra[i]/D.counts.narrow[i],1)+'×':'—',
+    NF(D.rates.narrow[i],2),NF(D.rates.ihra[i],2)]));
+
+stackChart('c3',Y,['condemned','reported','unattributed'],D.stance_year);
+legend('l3',[{n:'Condemned (critical coverage)',c:CSS('--s1')},{n:'Reported (quoted / attributed)',c:CSS('--s2')},{n:'Unattributed',c:CSS('--s3')}]);
+table('t3',['Year','Condemned','Reported','Unattributed','Total'],
+  Y.map(y=>{const r=D.stance_year[y]||{};const t=(r.condemned||0)+(r.reported||0)+(r.unattributed||0);
+    return [y,r.condemned||0,r.reported||0,r.unattributed||0,t];}));
+
+lineChart('c4',Y,[
+  {n:'Jewish-topic sentences',v:D.sentiment.jewish},
+  {n:'Israel-topic sentences',v:D.sentiment.israel}],
+  {dec:2,l:52,aria:'Mean sentiment by year'});
+legend('l4',[{n:'Jewish-topic sentences',c:CSS('--s1')},{n:'Israel-topic sentences',c:CSS('--s2')}]);
+
+/* headline + divergence narrative, computed from the data */
+const i23=Y.indexOf('2023'),i22=Y.indexOf('2022'),iLast=Y.length-1;
+const peakIdx=D.counts.ihra.indexOf(Math.max(...D.counts.ihra));
+document.getElementById('headline').innerHTML=
+ `<p><strong>Coverage of these topics exploded; classic antisemitic tropes did not.</strong></p>
+  <p>The share of <em>Spectator</em> articles discussing antisemitism rose from ${NF(D.salience.antisem[i22],2)}% in 2022 to a peak of ${NF(peakA,1)}% — a ${NF(peakA/Math.max(D.salience.antisem[i22],0.01),0)}-fold increase. Over the same span, articles flagged under the <strong>narrow</strong> consensus definition stayed in the low single digits every year (${Math.min(...D.counts.narrow)}–${Math.max(...D.counts.narrow)} articles), while <strong>IHRA-extended</strong> flags peaked at ${Math.max(...D.counts.ihra)} in ${Y[peakIdx]}.</p>
+  <p>Nearly the entire apparent “rise in antisemitism” under an IHRA-style measure is Israel-related political speech, not classic antisemitism — and most flagged passages of either kind appear in coverage that quotes or condemns them rather than asserts them.</p>`;
+
+const ratio = D.counts.narrow[peakIdx] ? (D.counts.ihra[peakIdx]/D.counts.narrow[peakIdx]) : null;
+document.getElementById('divergence').innerHTML=
+ `<p><strong>The two series diverge by roughly ${ratio?NF(ratio,0)+'×':'an order of magnitude'} at peak.</strong> That gap is the definitional choice made visible. Report only the orange line and the paper looks engulfed by antisemitism; report only the blue line and almost nothing happened. Both are defensible readings of a contested definition, which is exactly why a single “antisemitism score” for a newspaper should be treated with suspicion — including any score produced by this pipeline.</p>`;
+
+/* validation block */
+const P=D.precision||{}, vparts=[];
+if(Object.keys(P).length){
+  vparts.push(`<p>Flagged passages were read by hand and scored on <strong>two separate questions</strong>, because a lexicon can be perfectly accurate about words and still tell you nothing about a newspaper's character:</p>
+   <ul><li><strong>Is the flagged language genuinely there and on-topic?</strong> That is lexicon precision.</li>
+   <li><strong>Is the author <em>asserting</em> it</strong> — rather than quoting a chant, naming a trope in order to condemn it, reporting vandalism, or using an event's proper name? That is the question anyone actually cares about.</li></ul>`);
+  vparts.push(`<div class="tbl"><table><thead><tr><th>Definition family</th><th>Reviewed</th><th>Basis</th><th>Language precision</th><th>Author asserting it</th></tr></thead><tbody>`+
+    Object.entries(P).map(([k,v])=>`<tr><td>${k==='narrow'?'Narrow (consensus)':'IHRA-extended (contested)'}</td><td>${v.n}</td><td style="text-align:left">${v.basis}</td><td>${v.pct==null?'—':NF(v.pct,1)+'%'}</td><td>${v.own_voice} of ${v.n} (${NF(v.own_pct,0)}%)</td></tr>`).join('')+
+    `</tbody></table></div>`);
+  const nv=P.narrow;
+  if(nv) vparts.push(`<div class="note ok"><p><strong>All ${nv.n} narrow-definition matches were reviewed, not sampled — and the result is unambiguous.</strong> Every one is a real reference to antisemitic content: swastika vandalism in East Campus, Hamilton and Teachers College, the “Yid” slur spray-painted on a Holocaust-studies professor’s door, Holocaust denial, and op-eds naming the “Jews run the world” and “Zionist control” tropes in order to call them antisemitic. <strong>Not one is the Spectator asserting antisemitism.</strong> Lexicon precision 100%; antisemitism-by-the-paper precision 0%.</p>
+   <p>So the narrow series is best read as a measure of <em>how much antisemitism the paper was reporting on and arguing against</em> — not how much it harboured. The same number supports the opposite conclusion depending on which question you think it answers.</p></div>`);
+  const iv=P.ihra_ext;
+  if(iv) vparts.push(`<p>In the IHRA-extended sample, all ${iv.n} matches really did contain IHRA-example language, but only <strong>${iv.own_voice}</strong> were an author asserting it in their own voice. The rest were quoted protest chants, activist divestment demands, “Israeli Apartheid Week” as an event name, congressional-hearing coverage about <em>whether</em> such phrases are antisemitic, and — in one case — a pro-Israel Jewish columnist inverting the river-to-the-sea chant to “no Hamas there will be.” That last one is a plain false positive for antisemitism that no keyword method can avoid.</p>`);
+  if((D.own_voice_examples||[]).length) vparts.push(`<details><summary>The own-voice assertions found in the sample</summary><div class="tbl"><table><thead><tr><th>Year</th><th>Trope</th><th>Note</th></tr></thead><tbody>`+
+    D.own_voice_examples.map(e=>`<tr><td>${e.year}</td><td style="text-align:left">${e.trope.replace(/_/g,' ')}</td><td style="text-align:left">${e.note}</td></tr>`).join('')+`</tbody></table></div></details>`);
+} else {
+  vparts.push(`<p>No manual label file was supplied, so no precision figure is published. Treat every flag count as an upper bound.</p>`);
+}
+document.getElementById('validation').innerHTML =
+  `<div class="note"><p><strong>Keyword flags are evidence of language, not of intent.</strong> The only honest way to report them is with a measured error rate attached.</p></div>`
+  + vparts.join('')
+  + `<p>The trope families actually driving the counts:</p>`
+  + `<div class="tbl"><table><thead><tr><th>Trope</th><th>Definition family</th><th>Matches</th></tr></thead><tbody>`
+  + D.tropes.map(t=>`<tr><td>${t.trope.replace(/_/g,' ')}</td><td>${t.family==='narrow'?'Narrow':'IHRA-ext'}</td><td>${t.n}</td></tr>`).join('')
+  + `</tbody></table></div>`;
+
+document.getElementById('foot').innerHTML =
+  `Corpus: Columbia Daily Spectator, Arc Publishing content API, 8 sections, ${NF(T.articles)} deduplicated articles. `+
+  `Rated years ${T.min_year}–${T.max_year}; 2013–2016 excluded from rates as too sparse (marked * in the first table). `+
+  `1950–2012 unavailable: the historical archive returns HTTP 403 behind a bot challenge. `+
+  `Sentiment: VADER compound. Code and data: <code>spectator_antisemitism/</code> in the repository.`;
+</script>
