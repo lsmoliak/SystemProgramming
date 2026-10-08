@@ -1,0 +1,343 @@
+<title>Risk Battle Odds</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;800&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: single phone-first column — setup card, result summary, end-state distribution, then the worked math. */
+:root {
+  --bg: #eef0ea;          /* map-table green-grey */
+  --surface: #fbfcf8;
+  --ink: #1f2a24;
+  --muted: #5d6a61;
+  --line: #d3d9cf;
+  --atk: #b3261e;         /* attacker red */
+  --def: #2f5d9e;         /* defender blue */
+  --tie: #8a7a3c;
+  --accent: #2d5a3d;
+  --accent-ink: #ffffff;
+  --display: "Bitter", Georgia, serif;
+  --body: "Source Sans 3", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #151a17; --surface: #1e2520; --ink: #e6ebe4; --muted: #9aa69d; --line: #333d36;
+  --atk: #ef6b60; --def: #6f9de0; --tie: #cdb763; --accent: #6fb487; --accent-ink: #0f1511; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #151a17; --surface: #1e2520; --ink: #e6ebe4; --muted: #9aa69d; --line: #333d36;
+  --atk: #ef6b60; --def: #6f9de0; --tie: #cdb763; --accent: #6fb487; --accent-ink: #0f1511; color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--body); }
+.wrap { max-width: 34rem; margin: 0 auto; padding-inline: 16px; padding-block: 20px 40px; display: grid; gap: 18px; }
+h1 { font: 800 1.9rem/1.1 var(--display); margin: 0; text-wrap: balance; }
+h2 { font: 600 1.05rem/1.2 var(--display); margin: 0 0 10px; }
+h3 { font: 600 .95rem/1.2 var(--display); margin: 16px 0 8px; }
+.sub { color: var(--muted); margin: 4px 0 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+.label { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+.inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.field { display: grid; gap: 6px; }
+.field .label.a { color: var(--atk); } .field .label.d { color: var(--def); }
+.stepper { display: grid; grid-template-columns: 40px 1fr 40px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.stepper button { border: 0; background: transparent; color: var(--ink); font: 600 1.3rem var(--body); cursor: pointer; }
+.stepper button:active { background: var(--line); }
+.stepper input { width: 100%; min-width: 0; border: 0; border-inline: 1px solid var(--line); background: transparent; color: var(--ink); text-align: center; font: 500 1.25rem var(--mono); padding: 10px 0; -moz-appearance: textfield; }
+.stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.stepper button:focus-visible, .stepper input:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+
+button.go { width: 100%; padding: 14px; border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-ink); font: 600 1.05rem var(--body); cursor: pointer; }
+button.go:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.note { font-size: .85rem; color: var(--muted); margin: 10px 0 0; }
+.err { color: var(--atk); font-size: .9rem; margin: 8px 0 0; }
+
+.headline { display: grid; gap: 2px; }
+.big { font: 800 3rem/1 var(--display); color: var(--atk); font-variant-numeric: tabular-nums; }
+.split { display: flex; height: 10px; border-radius: 5px; overflow: hidden; margin-top: 12px; background: var(--line); }
+.split div { height: 100%; transition: width .4s ease; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+.stat { border-top: 3px solid var(--line); padding-top: 8px; }
+.stat.a { border-color: var(--atk); } .stat.d { border-color: var(--def); }
+.stat b { display: block; font: 600 1.5rem var(--mono); font-variant-numeric: tabular-nums; }
+.stat span { font-size: .85rem; color: var(--muted); }
+.stat small { display: block; font-size: .8rem; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+.chart { overflow-x: auto; }
+.chart svg { display: block; width: 100%; height: auto; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .85rem; color: var(--muted); margin: 4px 0 12px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+.list { display: grid; gap: 10px; }
+.row { display: grid; grid-template-columns: 8.5rem 1fr 4.2rem; align-items: center; gap: 10px; font-size: .9rem; }
+.row .who { white-space: nowrap; }
+.row .num { font-family: var(--mono); font-size: .85rem; text-align: right; font-variant-numeric: tabular-nums; }
+.track { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; }
+.fill { height: 100%; border-radius: 5px; }
+.more { font-size: .85rem; color: var(--muted); margin: 10px 0 0; }
+@media (prefers-reduced-motion: reduce) { .split div { transition: none; } }
+
+.math { font-size: .95rem; }
+.math p { margin: 0 0 10px; max-width: 65ch; }
+.mono { font-family: var(--mono); font-size: .88em; }
+.formula { font-family: var(--mono); font-size: .82rem; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; white-space: pre; margin: 0 0 10px; line-height: 1.6; }
+.tbl { overflow-x: auto; margin-bottom: 10px; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: .85rem; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-weight: 600; font-size: .78rem; }
+td.mono { white-space: nowrap; }
+.ok { color: var(--accent); font-weight: 600; }
+.bad { color: var(--atk); font-weight: 600; }
+a { color: var(--def); }
+</style>
+
+<main class="wrap">
+  <header>
+    <h1>Risk Battle Odds</h1>
+    <p class="sub">Fight to the finish: rolls repeat until the defender is wiped out or the attacker runs out of armies to attack with.</p>
+  </header>
+
+  <section class="card" aria-labelledby="setup-h">
+    <h2 id="setup-h">Battle setup</h2>
+    <div class="inputs">
+      <div class="field">
+        <label class="label a" for="atk">Attacking armies</label>
+        <div class="stepper">
+          <button type="button" data-step="atk" data-d="-1" aria-label="One fewer attacking army">−</button>
+          <input id="atk" type="number" inputmode="numeric" min="1" max="300" value="5">
+          <button type="button" data-step="atk" data-d="1" aria-label="One more attacking army">+</button>
+        </div>
+      </div>
+      <div class="field">
+        <label class="label d" for="def">Defending armies</label>
+        <div class="stepper">
+          <button type="button" data-step="def" data-d="-1" aria-label="One fewer defending army">−</button>
+          <input id="def" type="number" inputmode="numeric" min="1" max="300" value="3">
+          <button type="button" data-step="def" data-d="1" aria-label="One more defending army">+</button>
+        </div>
+      </div>
+    </div>
+    <button class="go" id="calc" type="button">Calculate</button>
+    <p class="err" id="err" hidden></p>
+    <p class="note">Attacking armies are the ones that can roll. Don't count the 1 that must stay behind (a territory with 6 armies attacks with 5). Each roll uses the most dice allowed: attacker up to 3, defender up to 2. Defender wins ties.</p>
+  </section>
+
+  <section class="card" aria-live="polite">
+    <div class="headline">
+      <span class="label">Attacker takes the territory</span>
+      <span class="big" id="winPct">–</span>
+    </div>
+    <div class="split" aria-hidden="true"><div id="splitA" style="background:var(--atk)"></div><div id="splitD" style="background:var(--def)"></div></div>
+    <div class="stats">
+      <div class="stat a"><b id="atkLeft">–</b><span>expected attackers left</span><small id="atkIfWin"></small></div>
+      <div class="stat d"><b id="defLeft">–</b><span>expected defenders left</span><small id="defIfWin"></small></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>How the battle ends</h2>
+    <div class="legend"><span><i style="background:var(--atk)"></i>Attacker wins with n left</span><span><i style="background:var(--def)"></i>Defender holds with n left</span></div>
+    <div class="chart" id="chart"></div>
+    <h3>Every end state</h3>
+    <div class="list" id="list"></div>
+    <p class="more" id="more" hidden></p>
+  </section>
+
+  <section class="card math">
+    <h2>How the math works</h2>
+
+    <h3>1. One roll</h3>
+    <p>The attacker rolls <span class="mono">n<sub>a</sub> = min(3, a)</span> dice and the defender rolls <span class="mono">n<sub>d</sub> = min(2, d)</span>. Both hands are sorted high to low and compared pair by pair, so <span class="mono">m = min(n<sub>a</sub>, n<sub>d</sub>)</span> armies are lost in total. These odds never change, so they are fixed constants (counted from all <span class="mono">6<sup>n<sub>a</sub>+n<sub>d</sub></sup></span> equally likely dice combinations):</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Dice (A v D)</th><th>Attacker loses 0</th><th>Attacker loses 1</th><th>Attacker loses 2</th></tr></thead>
+        <tbody id="rollTable"></tbody>
+      </table>
+    </div>
+
+    <h3>2. The whole battle</h3>
+    <p>A battle is a Markov chain on states <span class="mono">(a, d)</span>. Every roll removes 1 or 2 armies, so <span class="mono">a + d</span> always drops and the chain can't loop. Let <span class="mono">p<sub>k</sub></span> be the chance the attacker loses <span class="mono">k</span> armies on one roll. Then each state moves to <span class="mono">(a − k, d − (m − k))</span> with probability <span class="mono">p<sub>k</sub></span>.</p>
+    <p>The chance of finishing in each end state comes from pushing probability forward from the start:</p>
+    <pre class="formula">π(A, D) = 1
+π(a − k, d − m + k) += π(a, d) · p_k(n_a, n_d)
+     for every live state (a ≥ 1, d ≥ 1), largest a + d first
+
+P(attacker wins with j left)  = π(j, 0)    j = 1 … A
+P(defender holds with j left) = π(0, j)    j = 1 … D</pre>
+    <p>The same chain gives the win chance as a backward recurrence, which is handy for building lookup tables:</p>
+    <pre class="formula">W(a, 0) = 1,   W(0, d) = 0
+W(a, d) = Σ_k p_k(n_a, n_d) · W(a − k, d − m + k)</pre>
+    <p>The expected armies left are the averages over the end states: <span class="mono">E[attackers] = Σ j·π(j, 0)</span> and <span class="mono">E[defenders] = Σ j·π(0, j)</span>. Each state is visited once, so the work grows with <span class="mono">A × D</span>. Even 100 v 100 finishes in a few milliseconds. The answers are exact, with no simulation.</p>
+
+    <h3>3. Checked against a published table</h3>
+    <p>Jason Osborne's paper <em>Markov Chains for the RISK Board Game Revisited</em> (Mathematics Magazine, 2003) publishes the attacker's chance of winning. Here is this page's live result for the first 5 × 5 block next to his figures, as quoted by <a href="https://www.sciencenews.org/article/improving-odds-risk-0" target="_blank" rel="noopener">Science News</a>. Each cell shows <span class="mono">this page / Osborne</span>.</p>
+    <div class="tbl">
+      <table>
+        <thead id="checkHead"></thead>
+        <tbody id="checkRows"></tbody>
+      </table>
+    </div>
+    <p id="checkSummary"></p>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  const MAX = 300;
+
+  // Single-roll outcome counts, keyed "attackerDice,defenderDice".
+  // Index k = armies the attacker loses; the defender loses m − k.
+  // Counted by enumerating every dice combination; 3v1 and 3v2 match the rec.puzzles table.
+  const ROLL = {
+    "1,1": { total: 36,   counts: [15, 21] },
+    "1,2": { total: 216,  counts: [55, 161] },
+    "2,1": { total: 216,  counts: [125, 91] },
+    "2,2": { total: 1296, counts: [295, 420, 581] },
+    "3,1": { total: 1296, counts: [855, 441] },
+    "3,2": { total: 7776, counts: [2890, 2611, 2275] },
+  };
+  const P = {};
+  for (const key in ROLL) P[key] = ROLL[key].counts.map(c => c / ROLL[key].total);
+
+  // Forward pass over the battle's Markov chain.
+  // Returns atkEnd[j] = P(attacker wins with j left), defEnd[j] = P(defender holds with j left).
+  function battle(A, D) {
+    const W = D + 1;
+    const pi = new Float64Array((A + 1) * W);
+    pi[A * W + D] = 1;
+    const atkEnd = new Float64Array(A + 1), defEnd = new Float64Array(D + 1);
+    for (let s = A + D; s >= 1; s--) {
+      for (let a = Math.min(A, s); a >= 0 && s - a <= D; a--) {
+        const d = s - a, p = pi[a * W + d];
+        if (p === 0) continue;
+        if (d === 0) { atkEnd[a] += p; continue; }
+        if (a === 0) { defEnd[d] += p; continue; }
+        const na = Math.min(3, a), nd = Math.min(2, d), m = Math.min(na, nd);
+        const pk = P[na + "," + nd];
+        for (let k = 0; k <= m; k++) pi[(a - k) * W + (d - (m - k))] += p * pk[k];
+      }
+    }
+    return { atkEnd, defEnd };
+  }
+
+  const $ = id => document.getElementById(id);
+  const pct = v => {
+    const x = v * 100;
+    if (x > 0 && x < 0.01) return "<0.01%";
+    return x.toFixed(x >= 99.995 || x === 0 ? 0 : 2) + "%";
+  };
+
+  function readInput(id) {
+    const n = Math.round(Number($(id).value));
+    return Number.isFinite(n) ? n : NaN;
+  }
+
+  function render() {
+    const A = readInput("atk"), D = readInput("def");
+    const err = $("err");
+    if (!(A >= 1 && A <= MAX && D >= 1 && D <= MAX)) {
+      err.textContent = "Enter whole numbers from 1 to " + MAX + " for both sides.";
+      err.hidden = false;
+      return;
+    }
+    err.hidden = true;
+
+    const { atkEnd, defEnd } = battle(A, D);
+    let win = 0, eA = 0, eD = 0;
+    for (let j = 1; j <= A; j++) { win += atkEnd[j]; eA += j * atkEnd[j]; }
+    for (let j = 1; j <= D; j++) { eD += j * defEnd[j]; }
+    const lose = 1 - win;
+
+    $("winPct").textContent = pct(win);
+    $("splitA").style.width = (win * 100) + "%";
+    $("splitD").style.width = (lose * 100) + "%";
+    $("atkLeft").textContent = eA.toFixed(2);
+    $("defLeft").textContent = eD.toFixed(2);
+    $("atkIfWin").textContent = win > 0 ? (eA / win).toFixed(2) + " on average when the attack wins" : "";
+    $("defIfWin").textContent = lose > 0 ? (eD / lose).toFixed(2) + " on average when the defence holds" : "";
+
+    // End states, ordered from best for the defender to best for the attacker.
+    const states = [];
+    for (let j = D; j >= 1; j--) states.push({ side: "d", n: j, p: defEnd[j] });
+    for (let j = 1; j <= A; j++) states.push({ side: "a", n: j, p: atkEnd[j] });
+    drawChart(states);
+    drawList(states);
+  }
+
+  function drawChart(states) {
+    const n = states.length, h = 150, padB = 22, padT = 8;
+    const w = Math.max(320, n * 10);
+    const peak = Math.max(...states.map(s => s.p)) || 1;
+    const bw = w / n, gap = Math.min(2, bw * 0.2);
+    const ymax = Math.ceil(peak * 100 / 5) * 5 / 100 || peak;
+    let bars = "";
+    states.forEach((s, i) => {
+      const bh = (s.p / ymax) * (h - padB - padT);
+      bars += '<rect x="' + (i * bw + gap / 2).toFixed(2) + '" y="' + (h - padB - bh).toFixed(2) +
+        '" width="' + Math.max(0.5, bw - gap).toFixed(2) + '" height="' + bh.toFixed(2) +
+        '" fill="var(--' + (s.side === "a" ? "atk" : "def") + ')"><title>' +
+        (s.side === "a" ? "Attacker wins with " : "Defender holds with ") + s.n + " left: " + pct(s.p) + "</title></rect>";
+    });
+    // Divider between defender and attacker outcomes, plus edge labels.
+    const split = states.findIndex(s => s.side === "a") * bw;
+    const lines =
+      '<line x1="0" x2="' + w + '" y1="' + (h - padB) + '" y2="' + (h - padB) + '" stroke="var(--line)"/>' +
+      '<line x1="' + split + '" x2="' + split + '" y1="' + padT + '" y2="' + (h - padB + 4) + '" stroke="var(--muted)" stroke-dasharray="3 3"/>' +
+      '<text x="' + (split - 6) + '" y="' + (h - 6) + '" text-anchor="end" fill="var(--def)" font-size="11">← defender holds</text>' +
+      '<text x="' + (split + 6) + '" y="' + (h - 6) + '" fill="var(--atk)" font-size="11">attacker wins →</text>' +
+      '<text x="2" y="' + (padT + 10) + '" fill="var(--muted)" font-size="11">' + Math.round(ymax * 100) + '%</text>';
+    $("chart").innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '" style="min-width:' + Math.min(w, 320) + 'px" role="img" aria-label="Probability of each end state">' + bars + lines + "</svg>";
+  }
+
+  function drawList(states) {
+    const LIMIT = 0.0005; // hide end states under 0.05% to keep the list readable
+    const peak = Math.max(...states.map(s => s.p)) || 1;
+    const shown = states.filter(s => s.p >= LIMIT).slice().reverse();
+    const hidden = states.filter(s => s.p < LIMIT);
+    $("list").innerHTML = shown.map(s =>
+      '<div class="row"><span class="who">' + (s.side === "a" ? "Attacker wins, " : "Defender holds, ") + s.n + ' left</span>' +
+      '<div class="track"><div class="fill" style="width:' + (s.p / peak * 100) + '%;background:var(--' + (s.side === "a" ? "atk" : "def") + ')"></div></div>' +
+      '<span class="num">' + pct(s.p) + "</span></div>").join("");
+    const rest = hidden.reduce((t, s) => t + s.p, 0);
+    $("more").hidden = hidden.length === 0;
+    $("more").textContent = hidden.length + " more end states each under 0.05% (" + pct(rest) + " combined) are hidden.";
+  }
+
+  // Single-roll reference table.
+  $("rollTable").innerHTML = Object.keys(ROLL).sort().reverse().map(key => {
+    const r = ROLL[key], cells = [0, 1, 2].map(k =>
+      r.counts[k] === undefined ? "<td>—</td>" : '<td class="mono">' + r.counts[k] + "/" + r.total + " · " + pct(r.counts[k] / r.total) + "</td>");
+    return "<tr><td>" + key.replace(",", " v ") + "</td>" + cells.join("") + "</tr>";
+  }).join("");
+
+  // Osborne (2003), attacker win probability, attackers 1–5 (rows) vs defenders 1–5 (columns).
+  const OSBORNE = [
+    [.417, .106, .027, .007, .002],
+    [.754, .363, .206, .091, .049],
+    [.916, .656, .470, .315, .206],
+    [.972, .785, .642, .477, .359],
+    [.990, .890, .769, .638, .506],
+  ];
+  let matches = 0;
+  $("checkHead").innerHTML = "<tr><th>A \\ D</th>" + [1, 2, 3, 4, 5].map(d => "<th>" + d + "</th>").join("") + "</tr>";
+  $("checkRows").innerHTML = OSBORNE.map((row, i) => {
+    const A = i + 1;
+    return "<tr><th>" + A + "</th>" + row.map((ref, j) => {
+      const { atkEnd } = battle(A, j + 1);
+      let w = 0; for (let k = 1; k <= A; k++) w += atkEnd[k];
+      const ok = w.toFixed(3) === ref.toFixed(3);
+      if (ok) matches++;
+      return '<td class="mono ' + (ok ? "ok" : "bad") + '">' + w.toFixed(3).slice(1) + "/" + ref.toFixed(3).slice(1) + "</td>";
+    }).join("") + "</tr>";
+  }).join("");
+  $("checkSummary").innerHTML = '<span class="' + (matches === 25 ? "ok" : "bad") + '">' + matches + " of 25</span> cells match to three decimals.";
+
+  // Controls.
+  document.querySelectorAll("[data-step]").forEach(btn => btn.addEventListener("click", () => {
+    const el = $(btn.dataset.step);
+    const v = (Math.round(Number(el.value)) || 1) + Number(btn.dataset.d);
+    el.value = Math.min(MAX, Math.max(1, v));
+  }));
+  ["atk", "def"].forEach(id => $(id).addEventListener("keydown", e => { if (e.key === "Enter") render(); }));
+  $("calc").addEventListener("click", render);
+  render();
+})();
+</script>
