@@ -48,6 +48,14 @@ h1 { font: 800 1.25rem/1.1 var(--display); margin: 0; }
 .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .stepper button:focus-visible, .stepper input:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
 .err { color: var(--atk); font-size: .85rem; margin: 0; }
+.field-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.seg { display: flex; align-items: center; gap: 0; }
+.seg-lbl { font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-right: 6px; }
+.seg button { border: 1px solid var(--line); background: var(--surface); color: var(--muted); font: 600 .72rem var(--body); padding: 2px 10px; cursor: pointer; }
+.seg button:first-of-type { border-radius: 999px 0 0 999px; }
+.seg button:last-of-type { border-radius: 0 999px 999px 0; border-left: 0; }
+.seg button[aria-checked="true"] { background: var(--def); border-color: var(--def); color: var(--surface); }
+.seg button:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
 
 /* Result tile: 2×2 */
 .tile { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; flex: none; }
@@ -130,12 +138,31 @@ a { color: var(--def); }
         <button type="button" data-step="def" data-d="10" aria-label="Defending plus 10">+10</button>
       </div>
     </div>
+    <div class="field d">
+      <div class="field-head">
+        <label class="label d" for="ter">Defending territories</label>
+        <div class="seg" role="radiogroup" aria-label="Where the extra defenders sit">
+          <span class="seg-lbl">Stack</span>
+          <button type="button" role="radio" data-stack="front" aria-checked="true">First</button>
+          <button type="button" role="radio" data-stack="back" aria-checked="false">Last</button>
+        </div>
+      </div>
+      <div class="stepper">
+        <button type="button" data-step="ter" data-d="-10" aria-label="Territories minus 10">−10</button>
+        <button type="button" data-step="ter" data-d="-5" aria-label="Territories minus 5">−5</button>
+        <button type="button" data-step="ter" data-d="-1" aria-label="Territories minus 1">−1</button>
+        <input id="ter" type="number" inputmode="numeric" min="1" max="100" value="1">
+        <button type="button" data-step="ter" data-d="1" aria-label="Territories plus 1">+1</button>
+        <button type="button" data-step="ter" data-d="5" aria-label="Territories plus 5">+5</button>
+        <button type="button" data-step="ter" data-d="10" aria-label="Territories plus 10">+10</button>
+      </div>
+    </div>
     <p class="err" id="err" hidden></p>
   </section>
 
   <section class="tile" aria-live="polite" aria-label="Results">
     <div class="cell">
-      <span class="label">Attacker wins</span>
+      <span class="label" id="winLbl">Attacker wins</span>
       <span class="val" id="winPct">–</span>
       <div class="split" aria-hidden="true"><div id="splitA" style="background:var(--atk)"></div><div id="splitD" style="background:var(--def)"></div></div>
     </div>
@@ -145,7 +172,7 @@ a { color: var(--def); }
       <span class="sub">their losses − yours</span>
     </div>
     <div class="cell">
-      <span class="label a">Attackers left</span>
+      <span class="label a">Spare attackers</span>
       <span class="val mono" id="atkLeft">–</span>
       <span class="sub" id="atkSub"></span>
     </div>
@@ -162,7 +189,7 @@ a { color: var(--def); }
       <button class="link-btn" id="detailsOpen" type="button" aria-haspopup="dialog">All outcomes ›</button>
     </div>
     <div class="chart" id="chart"></div>
-    <div class="axis"><span class="d">◂ Defender holds, n left</span><span class="a">Attacker wins, n left ▸</span></div>
+    <div class="axis"><span class="d">◂ Defender holds, n armies left</span><span class="a">Attacker wins, n spare ▸</span></div>
   </section>
 </main>
 
@@ -188,10 +215,13 @@ a { color: var(--def); }
     <h3>How to use</h3>
     <ul>
       <li>Enter the armies that can attack. Leave out the 1 that must stay behind, so a territory with 6 armies attacks with 5.</li>
-      <li>The battle runs until the defender is wiped out or the attacker has none left.</li>
-      <li>Each roll uses the most dice allowed: attacker up to 3, defender up to 2. Defender wins ties.</li>
-      <li><strong>Net armies</strong> is the defender's expected losses minus the attacker's. A positive number means the attack takes more armies off the board than it costs.</li>
-      <li>Under attackers/defenders left: the change from the start, then the average left when that side wins.</li>
+      <li><strong>Defending territories</strong> is a chain the attacker takes one after another. Every territory holds at least 1 army, so defending armies must be at least the number of territories. The extra armies all sit on one territory. <strong>Stack: First</strong> puts them on the first territory attacked and <strong>Last</strong> on the final one.</li>
+      <li>Each conquered territory keeps 1 attacking army as a garrison, the last one included. The rest move on.</li>
+      <li>The attack runs until every territory falls or the attacker has no armies left to attack with.</li>
+      <li>Each roll uses the most dice allowed: attacker up to 3, defender up to 2. A 1-army territory rolls 1 die. Defender wins ties.</li>
+      <li><strong>Spare attackers</strong> are the armies still free to keep attacking after every garrison is placed. The line under it shows armies lost to dice, then the average spare when the attack wins.</li>
+      <li><strong>Defenders left</strong> counts every defending army still on the board, across all territories. The line under it shows armies lost, then the average number of territories the defender still holds.</li>
+      <li><strong>Net armies</strong> is the defender's expected losses to dice minus the attacker's. Garrisons aren't counted as losses. A positive number means the attack takes more armies off the board than it costs.</li>
     </ul>
 
     <h3>One roll</h3>
@@ -220,6 +250,28 @@ E[defenders left] = Σ j · π(0, j)
 Net = (D − E[defenders left]) − (A − E[attackers left])</pre>
     <p>The work grows with <span class="mono">A × D</span>, so even 100 v 100 finishes in a few milliseconds. The answers are exact, with no simulation.</p>
 
+    <h3>A chain of territories</h3>
+    <p>The defender holds territories <span class="mono">1 … T</span> with <span class="mono">d<sub>1</sub>, …, d<sub>T</sub></span> armies, attacked in that order. Let <span class="mono">μ<sub>t</sub>(a)</span> be the chance the attacker arrives at territory <span class="mono">t</span> with <span class="mono">a</span> attacking armies. Because the one-territory chain above is linear, it can start from the whole distribution at once. Seed <span class="mono">π(a, d<sub>t</sub>) = μ<sub>t</sub>(a)</span> for every <span class="mono">a</span> and run the same forward pass. Its end states give the next arrival distribution, after 1 army stays behind as a garrison:</p>
+    <pre class="formula">μ_1(A) = 1
+π_t(a, d_t) = μ_t(a)            for every a, then forward pass
+μ_{t+1}(j − 1) = π_t(j, 0)       j ≥ 1   (1 garrisons territory t)
+
+P(take all, s spare)          = μ_{T+1}(s)
+P(defender keeps k armies)    = Σ_t π_t(0, k − R_t),   R_t = d_{t+1} + … + d_T
+E[territories taken]          = Σ_t Σ_j π_t(j, 0)
+Net = (D − E[defenders left]) − (A − E[spare] − E[territories taken])</pre>
+    <p>Arriving with 0 armies is the state <span class="mono">(0, d<sub>t</sub>)</span>, so it lands straight in the defender's column and needs no special case. A 1-army territory always rolls <span class="mono">n<sub>d</sub> = 1</span>, because <span class="mono">n<sub>d</sub> = min(2, d)</span>. The cost is <span class="mono">A × (D + T)</span> in total.</p>
+    <p><strong>Front vs back.</strong> Front-loaded means <span class="mono">d = (D−T+1, 1, …, 1)</span> and back-loaded means <span class="mono">d = (1, …, 1, D−T+1)</span>. The order matters. Back-loaded, the attacker leaves garrisons first and reaches the big stack with fewer armies and fewer 3-dice rolls. So a back-loaded stack is usually harder to break.</p>
+
+    <h3>Confirmed by Monte Carlo</h3>
+    <p>Exact results from the formula next to 300,000 simulated attacks per row (dice rolled one at a time). The ±2σ column is the simulation's 95% margin. Every row agrees within it.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>A</th><th>D</th><th>T</th><th>Stack</th><th>Exact win</th><th>Simulated</th><th>±2σ</th><th>E[spare] exact / sim</th><th>E[def left] exact / sim</th></tr></thead>
+        <tbody id="mcRows"></tbody>
+      </table>
+    </div>
+
     <h3>Checked against a published table</h3>
     <p>Jason Osborne, <em>Markov Chains for the RISK Board Game Revisited</em> (Mathematics Magazine, 2003), as quoted by <a href="https://www.sciencenews.org/article/improving-odds-risk-0" target="_blank" rel="noopener">Science News</a>. Each cell shows <span class="mono">this page / Osborne</span>.</p>
     <div class="tbl">
@@ -235,7 +287,7 @@ Net = (D − E[defenders left]) − (A − E[attackers left])</pre>
 <script>
 (function () {
   "use strict";
-  const MAX = 300;
+  const MAX = 300, MAX_T = 100;
 
   // Single-roll outcome counts, keyed "attackerDice,defenderDice".
   // Index k = armies the attacker loses; the defender loses m − k.
@@ -251,25 +303,52 @@ Net = (D − E[defenders left]) − (A − E[attackers left])</pre>
   const P = {};
   for (const key in ROLL) P[key] = ROLL[key].counts.map(c => c / ROLL[key].total);
 
-  // Forward pass over the battle's Markov chain.
-  // Returns atkEnd[j] = P(attacker wins with j left), defEnd[j] = P(defender holds with j left).
-  function battle(A, D) {
-    const W = D + 1;
+  // One territory. mu[a] = P(attacker arrives with a attacking armies); D = armies in the territory.
+  // Forward pass over the (a, d) Markov chain, seeded with the whole arrival distribution at d = D.
+  // Returns win[j] = P(territory falls with j attackers surviving), lose[k] = P(it holds with k left).
+  function fight(mu, D) {
+    const A = mu.length - 1, W = D + 1;
     const pi = new Float64Array((A + 1) * W);
-    pi[A * W + D] = 1;
-    const atkEnd = new Float64Array(A + 1), defEnd = new Float64Array(D + 1);
-    for (let s = A + D; s >= 1; s--) {
+    for (let a = 0; a <= A; a++) pi[a * W + D] = mu[a];
+    const win = new Float64Array(A + 1), lose = new Float64Array(D + 1);
+    for (let s = A + D; s >= 0; s--) {
       for (let a = Math.min(A, s); a >= 0 && s - a <= D; a--) {
         const d = s - a, p = pi[a * W + d];
         if (p === 0) continue;
-        if (d === 0) { atkEnd[a] += p; continue; }
-        if (a === 0) { defEnd[d] += p; continue; }
+        if (d === 0) { win[a] += p; continue; }
+        if (a === 0) { lose[d] += p; continue; }
         const na = Math.min(3, a), nd = Math.min(2, d), m = Math.min(na, nd);
         const pk = P[na + "," + nd];
         for (let k = 0; k <= m; k++) pi[(a - k) * W + (d - (m - k))] += p * pk[k];
       }
     }
-    return { atkEnd, defEnd };
+    return { win, lose };
+  }
+
+  // A chain of territories attacked in order. terr[t] = defending armies in territory t.
+  // Each conquest leaves 1 army behind as a garrison; the rest move on.
+  // Returns surplus[s] = P(all taken with s spare attackers), defLeft[k] = P(defender keeps k armies in total),
+  // and taken = expected number of territories conquered.
+  function chain(A, terr) {
+    const D = terr.reduce((x, y) => x + y, 0);
+    let mu = new Float64Array(A + 1); mu[A] = 1;
+    const defLeft = new Float64Array(D + 1);
+    let behind = D, taken = 0;
+    for (const dt of terr) {
+      behind -= dt;
+      const { win, lose } = fight(mu, dt);
+      for (let k = 1; k <= dt; k++) defLeft[k + behind] += lose[k];
+      mu = new Float64Array(A + 1);
+      for (let j = 1; j <= A; j++) { mu[j - 1] += win[j]; taken += win[j]; }
+    }
+    return { surplus: mu, defLeft, taken };
+  }
+
+  // Where the extra armies sit: "front" = all on the first territory attacked, "back" = on the last.
+  function layout(D, T, stack) {
+    const terr = new Array(T).fill(1);
+    terr[stack === "back" ? T - 1 : 0] = D - T + 1;
+    return terr;
   }
 
   const $ = id => document.getElementById(id);
@@ -288,40 +367,51 @@ Net = (D − E[defenders left]) − (A − E[attackers left])</pre>
 
   let states = [];
 
+  let stack = "front";
+
   function render() {
-    const A = readInput("atk"), D = readInput("def");
+    const A = readInput("atk"), D = readInput("def"), T = readInput("ter");
     const err = $("err");
-    if (!(A >= 1 && A <= MAX && D >= 1 && D <= MAX)) {
-      err.textContent = "Enter whole numbers from 1 to " + MAX + " for both sides.";
+    if (!(A >= 1 && A <= MAX && D >= 1 && D <= MAX && T >= 1 && T <= MAX_T)) {
+      err.textContent = "Enter whole numbers: armies 1–" + MAX + ", territories 1–" + MAX_T + ".";
+      err.hidden = false;
+      return;
+    }
+    if (D < T) {
+      err.textContent = "Defending armies must be at least the number of territories (" + T + ").";
       err.hidden = false;
       return;
     }
     err.hidden = true;
 
-    const { atkEnd, defEnd } = battle(A, D);
-    let win = 0, eA = 0, eD = 0;
-    for (let j = 1; j <= A; j++) { win += atkEnd[j]; eA += j * atkEnd[j]; }
-    for (let j = 1; j <= D; j++) { eD += j * defEnd[j]; }
+    const { surplus, defLeft, taken } = chain(A, layout(D, T, stack));
+    let win = 0, eS = 0, eD = 0;
+    for (let s = 0; s <= A; s++) { win += surplus[s]; eS += s * surplus[s]; }
+    for (let k = 1; k <= D; k++) eD += k * defLeft[k];
     const lose = 1 - win;
-    const atkLoss = A - eA, defLoss = D - eD, net = defLoss - atkLoss;
+    // Armies removed by dice. Garrisons left in conquered territories are not losses.
+    const atkLoss = A - eS - taken, defLoss = D - eD, net = defLoss - atkLoss;
 
     $("winPct").textContent = pct(win);
+    $("winLbl").textContent = T > 1 ? "Takes all " + T : "Attacker wins";
     $("splitA").style.width = (win * 100) + "%";
     $("splitD").style.width = (lose * 100) + "%";
     $("net").textContent = signed(net);
     $("net").className = "val " + (net >= 0.005 ? "pos" : net <= -0.005 ? "neg" : "");
-    $("atkLeft").textContent = eA.toFixed(2);
+    $("atkLeft").textContent = eS.toFixed(2);
     $("defLeft").textContent = eD.toFixed(2);
-    $("atkSub").textContent = signed(-atkLoss) + (win > 0.0005 ? " · " + (eA / win).toFixed(2) + " if win" : "");
-    $("defSub").textContent = signed(-defLoss) + (lose > 0.0005 ? " · " + (eD / lose).toFixed(2) + " if hold" : "");
+    $("atkSub").textContent = signed(-atkLoss) + " lost" + (win > 0.0005 ? " · " + (eS / win).toFixed(2) + " if win" : "");
+    $("defSub").textContent = signed(-defLoss) + " lost" + (T > 1 ? " · " + (T - taken).toFixed(2) + " terr. held" : (lose > 0.0005 ? " · " + (eD / lose).toFixed(2) + " if hold" : ""));
 
     // End states, ordered from best for the defender to best for the attacker.
     states = [];
-    for (let j = D; j >= 1; j--) states.push({ side: "d", n: j, p: defEnd[j] });
-    for (let j = 1; j <= A; j++) states.push({ side: "a", n: j, p: atkEnd[j] });
+    for (let k = D; k >= 1; k--) states.push({ side: "d", n: k, p: defLeft[k] });
+    for (let s = 0; s <= A - T; s++) states.push({ side: "a", n: s, p: surplus[s] });
+    lastSetup = { A, D, T };
     drawChart();
     drawList();
   }
+  let lastSetup = null;
 
   // Draws at the container's real pixel size so text stays crisp and the chart fills the leftover height.
   function drawChart() {
@@ -352,7 +442,7 @@ Net = (D − E[defenders left]) − (A − E[attackers left])</pre>
       const y = yOf(s.p);
       svg += '<rect x="' + (x(i) + gap / 2).toFixed(2) + '" y="' + y.toFixed(2) + '" width="' + Math.max(0.6, bw - gap).toFixed(2) +
         '" height="' + (padT + plotH - y).toFixed(2) + '" rx="' + Math.min(2, bw / 4).toFixed(1) + '" fill="' + color(s) + '"><title>' +
-        (s.side === "a" ? "Attacker wins with " : "Defender holds with ") + s.n + " left: " + pct(s.p) + "</title></rect>";
+        describe(s) + ": " + pct(s.p) + "</title></rect>";
       if (s.n === 1 || s.n % every === 0) {
         svg += '<text x="' + (x(i) + bw / 2).toFixed(2) + '" y="' + (H - 4) + '" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="var(--mono)">' + s.n + "</text>";
       }
@@ -361,12 +451,17 @@ Net = (D − E[defenders left]) − (A − E[attackers left])</pre>
       const lx = Math.min(W - 20, Math.max(20, x(i) + bw / 2));
       svg += '<text x="' + lx.toFixed(2) + '" y="' + (yOf(s.p) - 5).toFixed(2) + '" text-anchor="middle" font-size="11" font-weight="600" fill="' + color(s) + '" font-family="var(--mono)">' + pct(s.p) + "</text>";
     });
-    const split = x(states.findIndex(s => s.side === "a"));
+    const firstA = states.findIndex(s => s.side === "a");
+    const split = x(firstA === -1 ? n : firstA);
     svg += '<line x1="' + padX + '" x2="' + (W - padX) + '" y1="' + (padT + plotH) + '" y2="' + (padT + plotH) + '" stroke="var(--muted)"/>' +
       '<line x1="' + split + '" x2="' + split + '" y1="' + (padT - 6) + '" y2="' + H + '" stroke="var(--muted)" stroke-dasharray="3 3"/>';
     box.innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Probability of each end state">' + svg + "</svg>";
     // Keep the defender/attacker divide in view when the chart scrolls.
     if (box.scrollWidth > box.clientWidth) box.scrollLeft = split - box.clientWidth / 2;
+  }
+
+  function describe(s) {
+    return s.side === "a" ? "Attacker wins, " + s.n + " spare" : "Defender holds, " + s.n + (s.n === 1 ? " army" : " armies");
   }
 
   function drawList() {
@@ -375,11 +470,13 @@ Net = (D − E[defenders left]) − (A − E[attackers left])</pre>
     const shown = states.filter(s => s.p >= LIMIT).slice().reverse();
     const hidden = states.filter(s => s.p < LIMIT);
     $("list").innerHTML = shown.map(s =>
-      '<div class="row"><span>' + (s.side === "a" ? "Attacker wins, " : "Defender holds, ") + s.n + ' left</span>' +
+      '<div class="row"><span>' + describe(s) + '</span>' +
       '<div class="track"><div class="fill" style="width:' + (s.p / peak * 100) + '%;background:var(--' + (s.side === "a" ? "atk" : "def") + ')"></div></div>' +
       '<span class="num">' + pct(s.p) + "</span></div>").join("");
-    const A = readInput("atk"), D = readInput("def");
-    $("detailsSummary").textContent = A + " attacking v " + D + " defending. Every way the battle can finish, most attackers left first.";
+    const { A, D, T } = lastSetup;
+    $("detailsSummary").textContent = A + " attacking v " + D + " defending" +
+      (T > 1 ? " across " + T + " territories (stack " + (stack === "back" ? "last" : "first") + ")" : "") +
+      ". Every way the attack can finish, best for the attacker first.";
     const rest = hidden.reduce((t, s) => t + s.p, 0);
     $("more").hidden = hidden.length === 0;
     $("more").textContent = hidden.length + " more end states each under 0.05% (" + pct(rest) + " combined) are hidden.";
@@ -405,8 +502,8 @@ Net = (D − E[defenders left]) − (A − E[attackers left])</pre>
   $("checkRows").innerHTML = OSBORNE.map((row, i) => {
     const A = i + 1;
     return "<tr><th>" + A + "</th>" + row.map((ref, j) => {
-      const { atkEnd } = battle(A, j + 1);
-      let w = 0; for (let k = 1; k <= A; k++) w += atkEnd[k];
+      const { surplus } = chain(A, [j + 1]);
+      let w = 0; for (let k = 0; k <= A; k++) w += surplus[k];
       const ok = w.toFixed(3) === ref.toFixed(3);
       if (ok) matches++;
       return '<td class="mono ' + (ok ? "ok" : "bad") + '">' + w.toFixed(3).slice(1) + "/" + ref.toFixed(3).slice(1) + "</td>";
@@ -414,14 +511,52 @@ Net = (D − E[defenders left]) − (A − E[attackers left])</pre>
   }).join("");
   $("checkSummary").innerHTML = '<span class="' + (matches === 25 ? "ok" : "bad") + '">' + matches + " of 25</span> cells match to three decimals.";
 
-  // Controls: every change recalculates immediately.
+  // Monte Carlo confirmation, 300,000 simulated attacks per row (risk-odds/montecarlo.py).
+  // [A, D, T, stack, simulated win, 2σ, simulated E[spare], simulated E[defenders left]]
+  const MC = [
+    [8, 6, 3, "front", .65853, .0017, 1.6077, 0.7794],
+    [8, 6, 3, "back",  .60968, .0018, 1.5830, 1.0277],
+    [10, 8, 4, "front", .60590, .0018, 1.5775, 0.9779],
+    [10, 8, 4, "back",  .55356, .0018, 1.5476, 1.3949],
+    [12, 10, 5, "front", .55799, .0018, 1.5032, 1.2019],
+    [12, 10, 5, "back",  .50687, .0018, 1.4825, 1.7614],
+    [15, 12, 6, "front", .61067, .0018, 2.0276, 1.0735],
+    [15, 12, 6, "back",  .56689, .0018, 2.0111, 1.6290],
+  ];
+  $("mcRows").innerHTML = MC.map(([A, D, T, st, mw, se2, ms, md]) => {
+    const { surplus, defLeft } = chain(A, layout(D, T, st));
+    let w = 0, es = 0, ed = 0;
+    surplus.forEach((p, s) => { w += p; es += s * p; });
+    defLeft.forEach((p, k) => { ed += k * p; });
+    const ok = Math.abs(w - mw) <= se2;
+    return "<tr><td>" + A + "</td><td>" + D + "</td><td>" + T + "</td><td>" + (st === "back" ? "Last" : "First") + "</td>" +
+      '<td class="mono">' + (w * 100).toFixed(2) + '%</td><td class="mono ' + (ok ? "ok" : "bad") + '">' + (mw * 100).toFixed(2) + "%</td>" +
+      '<td class="mono">' + (se2 * 100).toFixed(2) + '</td><td class="mono">' + es.toFixed(3) + " / " + ms.toFixed(3) +
+      '</td><td class="mono">' + ed.toFixed(3) + " / " + md.toFixed(3) + "</td></tr>";
+  }).join("");
+
+  // Controls: every change recalculates immediately. Defending armies never drop below territories.
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   document.querySelectorAll("[data-step]").forEach(btn => btn.addEventListener("click", () => {
-    const el = $(btn.dataset.step);
-    const cur = Math.round(Number(el.value)) || 1;
-    el.value = Math.min(MAX, Math.max(1, cur + Number(btn.dataset.d)));
+    const id = btn.dataset.step, el = $(id);
+    const cur = Math.round(Number(el.value)) || 1, next = cur + Number(btn.dataset.d);
+    const T = readInput("ter") || 1;
+    if (id === "ter") {
+      el.value = clamp(next, 1, MAX_T);
+      if ((readInput("def") || 0) < Number(el.value)) $("def").value = el.value;
+    } else if (id === "def") {
+      el.value = clamp(next, Math.min(T, MAX), MAX);
+    } else {
+      el.value = clamp(next, 1, MAX);
+    }
     render();
   }));
-  ["atk", "def"].forEach(id => $(id).addEventListener("input", render));
+  ["atk", "def", "ter"].forEach(id => $(id).addEventListener("input", render));
+  document.querySelectorAll("[data-stack]").forEach(btn => btn.addEventListener("click", () => {
+    stack = btn.dataset.stack;
+    document.querySelectorAll("[data-stack]").forEach(b => b.setAttribute("aria-checked", String(b === btn)));
+    render();
+  }));
 
   // Overlays: "All outcomes" and help.
   let openSheet = null, opener = null;
