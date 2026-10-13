@@ -535,23 +535,27 @@ Net = (D − E[defenders left]) − (A − E[spare] − E[territories taken])</p
       '</td><td class="mono">' + ed.toFixed(3) + " / " + md.toFixed(3) + "</td></tr>";
   }).join("");
 
-  // Controls: every change recalculates immediately. Defending armies never drop below territories.
+  // Controls: every change recalculates immediately.
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   document.querySelectorAll("[data-step]").forEach(btn => btn.addEventListener("click", () => {
     const id = btn.dataset.step, el = $(id);
     const cur = Math.round(Number(el.value)) || 1, next = cur + Number(btn.dataset.d);
-    const T = readInput("ter") || 1;
-    if (id === "ter") {
-      el.value = clamp(next, 1, MAX_T);
-      if ((readInput("def") || 0) < Number(el.value)) $("def").value = el.value;
-    } else if (id === "def") {
-      el.value = clamp(next, Math.min(T, MAX), MAX);
-    } else {
-      el.value = clamp(next, 1, MAX);
-    }
+    el.value = clamp(next, 1, id === "ter" ? MAX_T : MAX);
+    syncArmies(id);
     render();
   }));
-  ["atk", "def", "ter"].forEach(id => $(id).addEventListener("input", render));
+  // Keep defending armies ≥ territories by moving whichever side wasn't just changed.
+  function syncArmies(changed) {
+    const D = readInput("def"), T = readInput("ter");
+    if (!(D >= 1 && T >= 1) || D >= T) return;
+    if (changed === "ter") $("def").value = Math.min(T, MAX);
+    else if (changed === "def") $("ter").value = D;
+  }
+  ["atk", "def", "ter"].forEach(id => {
+    $(id).addEventListener("input", render);
+    // Typed values sync once the field is left, so a half-typed number doesn't move the other one.
+    $(id).addEventListener("change", () => { syncArmies(id); render(); });
+  });
   document.querySelectorAll("[data-stack]").forEach(btn => btn.addEventListener("click", () => {
     stack = btn.dataset.stack;
     document.querySelectorAll("[data-stack]").forEach(b => b.setAttribute("aria-checked", String(b === btn)));
