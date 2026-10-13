@@ -63,6 +63,9 @@ h1 { font: 800 1.25rem/1.1 var(--display); margin: 0; }
 
 /* Histogram fills whatever height is left */
 .chart-card { flex: 1 1 0; min-height: 150px; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px 6px; }
+.chart-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 2px; }
+.link-btn { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 4px 12px; font: 600 .8rem var(--body); cursor: pointer; }
+.link-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .chart { flex: 1 1 0; min-height: 0; overflow-x: auto; overflow-y: hidden; }
 .chart svg { display: block; }
 .axis { display: flex; justify-content: space-between; gap: 8px; font-size: .72rem; font-weight: 600; margin-top: 2px; }
@@ -154,16 +157,32 @@ a { color: var(--def); }
   </section>
 
   <section class="chart-card" aria-label="How the battle ends">
+    <div class="chart-head">
+      <span class="label">How the battle ends</span>
+      <button class="link-btn" id="detailsOpen" type="button" aria-haspopup="dialog">All outcomes ›</button>
+    </div>
     <div class="chart" id="chart"></div>
     <div class="axis"><span class="d">◂ Defender holds, n left</span><span class="a">Attacker wins, n left ▸</span></div>
   </section>
 </main>
 
+<div class="overlay" id="details" role="dialog" aria-modal="true" aria-labelledby="detailsTitle" hidden>
+  <div class="sheet">
+    <div class="sheet-head">
+      <h2 id="detailsTitle">All outcomes</h2>
+      <button class="close" data-close type="button">Close</button>
+    </div>
+    <p class="more" id="detailsSummary" style="margin-top:12px"></p>
+    <div class="list" id="list"></div>
+    <p class="more" id="more" hidden></p>
+  </div>
+</div>
+
 <div class="overlay" id="help" role="dialog" aria-modal="true" aria-labelledby="helpTitle" hidden>
   <div class="sheet">
     <div class="sheet-head">
       <h2 id="helpTitle">Help</h2>
-      <button class="close" id="helpClose" type="button">Close</button>
+      <button class="close" data-close type="button">Close</button>
     </div>
 
     <h3>How to use</h3>
@@ -174,10 +193,6 @@ a { color: var(--def); }
       <li><strong>Net armies</strong> is the defender's expected losses minus the attacker's. A positive number means the attack takes more armies off the board than it costs.</li>
       <li>Under attackers/defenders left: the change from the start, then the average left when that side wins.</li>
     </ul>
-
-    <h3>Every end state</h3>
-    <div class="list" id="list"></div>
-    <p class="more" id="more" hidden></p>
 
     <h3>One roll</h3>
     <p>The attacker rolls <span class="mono">n<sub>a</sub> = min(3, a)</span> dice and the defender rolls <span class="mono">n<sub>d</sub> = min(2, d)</span>. Both hands are sorted high to low and compared pair by pair, so <span class="mono">m = min(n<sub>a</sub>, n<sub>d</sub>)</span> armies are lost in total. These odds are fixed constants, counted from all <span class="mono">6<sup>n<sub>a</sub>+n<sub>d</sub></sup></span> equally likely dice combinations:</p>
@@ -363,6 +378,8 @@ Net = (D − E[defenders left]) − (A − E[attackers left])</pre>
       '<div class="row"><span>' + (s.side === "a" ? "Attacker wins, " : "Defender holds, ") + s.n + ' left</span>' +
       '<div class="track"><div class="fill" style="width:' + (s.p / peak * 100) + '%;background:var(--' + (s.side === "a" ? "atk" : "def") + ')"></div></div>' +
       '<span class="num">' + pct(s.p) + "</span></div>").join("");
+    const A = readInput("atk"), D = readInput("def");
+    $("detailsSummary").textContent = A + " attacking v " + D + " defending. Every way the battle can finish, most attackers left first.";
     const rest = hidden.reduce((t, s) => t + s.p, 0);
     $("more").hidden = hidden.length === 0;
     $("more").textContent = hidden.length + " more end states each under 0.05% (" + pct(rest) + " combined) are hidden.";
@@ -406,14 +423,24 @@ Net = (D − E[defenders left]) − (A − E[attackers left])</pre>
   }));
   ["atk", "def"].forEach(id => $(id).addEventListener("input", render));
 
-  // Help overlay.
-  const help = $("help");
-  const openHelp = () => { help.hidden = false; $("helpClose").focus(); };
-  const closeHelp = () => { help.hidden = true; $("helpOpen").focus(); };
-  $("helpOpen").addEventListener("click", openHelp);
-  $("helpClose").addEventListener("click", closeHelp);
-  help.addEventListener("click", e => { if (e.target === help) closeHelp(); });
-  document.addEventListener("keydown", e => { if (e.key === "Escape" && !help.hidden) closeHelp(); });
+  // Overlays: "All outcomes" and help.
+  let openSheet = null, opener = null;
+  function showSheet(id, btn) {
+    openSheet = $(id); opener = btn;
+    openSheet.hidden = false;
+    openSheet.querySelector(".sheet").scrollTop = 0;
+    openSheet.querySelector("[data-close]").focus();
+  }
+  function hideSheet() {
+    if (!openSheet) return;
+    openSheet.hidden = true; openSheet = null;
+    if (opener) opener.focus();
+  }
+  $("helpOpen").addEventListener("click", e => showSheet("help", e.currentTarget));
+  $("detailsOpen").addEventListener("click", e => showSheet("details", e.currentTarget));
+  document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", hideSheet));
+  document.querySelectorAll(".overlay").forEach(o => o.addEventListener("click", e => { if (e.target === o) hideSheet(); }));
+  document.addEventListener("keydown", e => { if (e.key === "Escape") hideSheet(); });
 
   // Redraw the chart when the available space changes (rotation, browser bars).
   let rt;
