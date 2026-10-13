@@ -1,8 +1,8 @@
 <title>Risk Battle Odds</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;800&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;800&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@500;600&display=swap">
 <style>
-/* Layout: single phone-first column — armies input, 2×2 result tile, end-state histogram, collapsed help and math. */
+/* Layout: one-screen app — title bar with help, army steppers, 2×2 result tile, histogram filling the rest. Help is an overlay. */
 :root {
   --bg: #eef0ea;          /* map-table green-grey */
   --surface: #fbfcf8;
@@ -12,88 +12,97 @@
   --atk: #b3261e;         /* attacker red */
   --def: #2f5d9e;         /* defender blue */
   --accent: #2d5a3d;
+  --scrim: rgba(20, 28, 23, .45);
   --display: "Bitter", Georgia, serif;
   --body: "Source Sans 3", system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, monospace;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #151a17; --surface: #1e2520; --ink: #e6ebe4; --muted: #9aa69d; --line: #333d36;
-  --atk: #ef6b60; --def: #6f9de0; --accent: #6fb487; color-scheme: dark } }
+  --atk: #ef6b60; --def: #6f9de0; --accent: #6fb487; --scrim: rgba(0, 0, 0, .6); color-scheme: dark } }
 :root[data-theme="dark"] {
   --bg: #151a17; --surface: #1e2520; --ink: #e6ebe4; --muted: #9aa69d; --line: #333d36;
-  --atk: #ef6b60; --def: #6f9de0; --accent: #6fb487; color-scheme: dark }
+  --atk: #ef6b60; --def: #6f9de0; --accent: #6fb487; --scrim: rgba(0, 0, 0, .6); color-scheme: dark }
 
-body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--body); }
-.wrap { max-width: 34rem; margin: 0 auto; padding-inline: 16px; padding-block: 16px 40px; display: grid; gap: 14px; }
-h1 { font: 800 1.5rem/1.1 var(--display); margin: 0; }
-h2 { font: 600 1rem/1.2 var(--display); margin: 0 0 8px; }
-h3 { font: 600 .95rem/1.2 var(--display); margin: 16px 0 8px; }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
-.label { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+html { height: 100%; box-sizing: border-box; }
+body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 15px/1.4 var(--body); }
+.app { height: 100%; max-width: 34rem; margin: 0 auto; padding-inline: 16px; padding-block: 10px 12px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; }
+.label { font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
 .label.a { color: var(--atk); } .label.d { color: var(--def); }
 
-/* Army inputs: −10 −5 −1 [n] +1 +5 +10 */
-.field { display: grid; gap: 4px; }
-.field + .field { margin-top: 12px; }
-.stepper { display: grid; grid-template-columns: repeat(3, 1fr) 1.5fr repeat(3, 1fr); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-.stepper button { border: 0; border-left: 1px solid var(--line); background: transparent; color: var(--ink); font: 600 .9rem var(--mono); padding: 11px 0; cursor: pointer; touch-action: manipulation; min-width: 0; }
+/* Title bar */
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+h1 { font: 800 1.25rem/1.1 var(--display); margin: 0; }
+.help-btn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 700 1rem var(--body); cursor: pointer; flex: none; }
+.help-btn:focus-visible, .close:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Army steppers: −10 −5 −1 [n] +1 +5 +10 */
+.inputs { display: grid; gap: 8px; }
+.field { display: grid; gap: 3px; }
+.stepper { display: grid; grid-template-columns: repeat(3, 1fr) 1.5fr repeat(3, 1fr); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.stepper button { border: 0; border-left: 1px solid var(--line); background: transparent; color: var(--ink); font: 600 .85rem var(--mono); padding: 9px 0; cursor: pointer; touch-action: manipulation; min-width: 0; }
 .stepper button:first-child { border-left: 0; }
 .stepper button:active { background: var(--line); }
-.stepper input { width: 100%; min-width: 0; border: 0; border-left: 1px solid var(--line); background: var(--bg); text-align: center; font: 600 1.3rem var(--mono); padding: 6px 0; -moz-appearance: textfield; }
+.stepper input { width: 100%; min-width: 0; border: 0; border-left: 1px solid var(--line); background: var(--bg); text-align: center; font: 600 1.2rem var(--mono); padding: 4px 0; -moz-appearance: textfield; }
 .field.a input { color: var(--atk); } .field.d input { color: var(--def); }
 .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .stepper button:focus-visible, .stepper input:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
-.err { color: var(--atk); font-size: .9rem; margin: 8px 0 0; }
+.err { color: var(--atk); font-size: .85rem; margin: 0; }
 
 /* Result tile: 2×2 */
-.tile { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
-.cell { padding: 12px 14px; display: grid; gap: 2px; align-content: start; min-width: 0; }
+.tile { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; flex: none; }
+.cell { padding: 8px 12px; display: grid; gap: 1px; align-content: start; min-width: 0; }
 .cell:nth-child(odd) { border-right: 1px solid var(--line); }
 .cell:nth-child(n+3) { border-top: 1px solid var(--line); }
-.val { font: 800 2rem/1.1 var(--display); font-variant-numeric: tabular-nums; }
-.val.mono { font: 600 1.45rem/1.2 var(--mono); }
-.sub { font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.val { font: 800 1.6rem/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.val.mono { font: 600 1.2rem/1.25 var(--mono); }
+.sub { font-size: .76rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pos { color: var(--accent); } .neg { color: var(--atk); }
-.split { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 6px; background: var(--line); }
+.split { display: flex; height: 5px; border-radius: 3px; overflow: hidden; margin-top: 5px; background: var(--line); }
 .split div { height: 100%; }
 
-.chart svg { display: block; width: 100%; height: auto; }
-.chart { overflow-x: auto; }
-.axis { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: .8rem; font-weight: 600; margin-top: 4px; }
+/* Histogram fills whatever height is left */
+.chart-card { flex: 1 1 0; min-height: 150px; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px 6px; }
+.chart { flex: 1 1 0; min-height: 0; overflow-x: auto; overflow-y: hidden; }
+.chart svg { display: block; }
+.axis { display: flex; justify-content: space-between; gap: 8px; font-size: .72rem; font-weight: 600; margin-top: 2px; }
 .axis .d { color: var(--def); } .axis .a { color: var(--atk); }
 
-details { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 10px; }
-details.card { border-top: 1px solid var(--line); margin-top: 0; padding-top: 14px; }
-summary { cursor: pointer; font-weight: 600; font-size: .95rem; color: var(--muted); }
-summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-details[open] > summary { margin-bottom: 10px; color: var(--ink); }
-
-.list { display: grid; gap: 8px; }
-.row { display: grid; grid-template-columns: 8rem 1fr 4rem; align-items: center; gap: 10px; font-size: .88rem; }
-.row .num { font-family: var(--mono); font-size: .82rem; text-align: right; font-variant-numeric: tabular-nums; }
+/* Help overlay */
+[hidden] { display: none !important; }
+.overlay { position: fixed; inset: 0; background: var(--scrim); display: flex; justify-content: center; align-items: flex-end; z-index: 10; }
+.sheet { background: var(--surface); width: 100%; max-width: 36rem; max-height: calc(100% - 24px - env(safe-area-inset-top, 0px)); overflow-y: auto; border-radius: 16px 16px 0 0; padding: 0 16px calc(24px + env(safe-area-inset-bottom, 0px)); box-sizing: border-box; overscroll-behavior: contain; }
+.sheet-head { position: sticky; top: 0; background: var(--surface); display: flex; justify-content: space-between; align-items: center; padding: 14px 0 10px; border-bottom: 1px solid var(--line); }
+.sheet-head h2 { font: 800 1.15rem var(--display); margin: 0; }
+.close { border: 1px solid var(--line); background: transparent; color: var(--ink); border-radius: 8px; padding: 6px 12px; font: 600 .9rem var(--body); cursor: pointer; }
+.sheet h3 { font: 600 1rem/1.2 var(--display); margin: 18px 0 8px; }
+.sheet p, .sheet ul { margin: 0 0 10px; max-width: 65ch; font-size: .95rem; }
+.sheet ul { padding-left: 1.2rem; }
+.list { display: grid; gap: 7px; }
+.row { display: grid; grid-template-columns: 8rem 1fr 3.6rem; align-items: center; gap: 10px; font-size: .86rem; }
+.row .num { font-family: var(--mono); font-size: .8rem; text-align: right; font-variant-numeric: tabular-nums; }
 .track { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
 .fill { height: 100%; border-radius: 4px; }
-.more { font-size: .85rem; color: var(--muted); margin: 8px 0 0; }
-
-.math { font-size: .95rem; }
-.math p, .math ul { margin: 0 0 10px; max-width: 65ch; }
-.math ul { padding-left: 1.2rem; }
+.more { font-size: .85rem; color: var(--muted); }
 .mono { font-family: var(--mono); font-size: .88em; }
-.formula { font-family: var(--mono); font-size: .8rem; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; white-space: pre; margin: 0 0 10px; line-height: 1.6; }
+.formula { font-family: var(--mono); font-size: .78rem; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; white-space: pre; margin: 0 0 10px; line-height: 1.6; }
 .tbl { overflow-x: auto; margin-bottom: 10px; }
-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: .85rem; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: .84rem; }
 th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
-th { color: var(--muted); font-weight: 600; font-size: .78rem; }
+th { color: var(--muted); font-weight: 600; font-size: .76rem; }
 td.mono { white-space: nowrap; }
 .ok { color: var(--accent); font-weight: 600; }
 .bad { color: var(--atk); font-weight: 600; }
 a { color: var(--def); }
 </style>
 
-<main class="wrap">
-  <h1>Risk Battle Odds</h1>
+<main class="app">
+  <div class="bar">
+    <h1>Risk Battle Odds</h1>
+    <button class="help-btn" id="helpOpen" type="button" aria-label="Help and math" aria-haspopup="dialog">?</button>
+  </div>
 
-  <section class="card" aria-label="Armies">
+  <section class="inputs" aria-label="Armies">
     <div class="field a">
       <label class="label a" for="atk">Attacking armies</label>
       <div class="stepper">
@@ -119,10 +128,6 @@ a { color: var(--def); }
       </div>
     </div>
     <p class="err" id="err" hidden></p>
-    <details id="help">
-      <summary>How to use</summary>
-      <p class="sub" style="font-size:.9rem;margin:0">Enter the armies that can attack. Leave out the 1 that must stay behind, so a territory with 6 armies attacks with 5. The battle runs until the defender is wiped out or the attacker has none left. Each roll uses the most dice allowed: attacker up to 3, defender up to 2. Defender wins ties. Results update as you change the numbers.</p>
-    </details>
   </section>
 
   <section class="tile" aria-live="polite" aria-label="Results">
@@ -139,32 +144,42 @@ a { color: var(--def); }
     <div class="cell">
       <span class="label a">Attackers left</span>
       <span class="val mono" id="atkLeft">–</span>
-      <span class="sub" id="atkDelta"></span>
-      <span class="sub" id="atkIfWin"></span>
+      <span class="sub" id="atkSub"></span>
     </div>
     <div class="cell">
       <span class="label d">Defenders left</span>
       <span class="val mono" id="defLeft">–</span>
-      <span class="sub" id="defDelta"></span>
-      <span class="sub" id="defIfWin"></span>
+      <span class="sub" id="defSub"></span>
     </div>
   </section>
 
-  <section class="card">
-    <h2>How the battle ends</h2>
+  <section class="chart-card" aria-label="How the battle ends">
     <div class="chart" id="chart"></div>
-    <div class="axis"><span class="d">◂ Defender holds with n left</span><span class="a">Attacker wins with n left ▸</span></div>
-    <details>
-      <summary>Every end state</summary>
-      <div class="list" id="list"></div>
-      <p class="more" id="more" hidden></p>
-    </details>
+    <div class="axis"><span class="d">◂ Defender holds, n left</span><span class="a">Attacker wins, n left ▸</span></div>
   </section>
+</main>
 
-  <details class="card math">
-    <summary>How the math works</summary>
+<div class="overlay" id="help" role="dialog" aria-modal="true" aria-labelledby="helpTitle" hidden>
+  <div class="sheet">
+    <div class="sheet-head">
+      <h2 id="helpTitle">Help</h2>
+      <button class="close" id="helpClose" type="button">Close</button>
+    </div>
 
-    <h3>1. One roll</h3>
+    <h3>How to use</h3>
+    <ul>
+      <li>Enter the armies that can attack. Leave out the 1 that must stay behind, so a territory with 6 armies attacks with 5.</li>
+      <li>The battle runs until the defender is wiped out or the attacker has none left.</li>
+      <li>Each roll uses the most dice allowed: attacker up to 3, defender up to 2. Defender wins ties.</li>
+      <li><strong>Net armies</strong> is the defender's expected losses minus the attacker's. A positive number means the attack takes more armies off the board than it costs.</li>
+      <li>Under attackers/defenders left: the change from the start, then the average left when that side wins.</li>
+    </ul>
+
+    <h3>Every end state</h3>
+    <div class="list" id="list"></div>
+    <p class="more" id="more" hidden></p>
+
+    <h3>One roll</h3>
     <p>The attacker rolls <span class="mono">n<sub>a</sub> = min(3, a)</span> dice and the defender rolls <span class="mono">n<sub>d</sub> = min(2, d)</span>. Both hands are sorted high to low and compared pair by pair, so <span class="mono">m = min(n<sub>a</sub>, n<sub>d</sub>)</span> armies are lost in total. These odds are fixed constants, counted from all <span class="mono">6<sup>n<sub>a</sub>+n<sub>d</sub></sup></span> equally likely dice combinations:</p>
     <div class="tbl">
       <table>
@@ -173,7 +188,7 @@ a { color: var(--def); }
       </table>
     </div>
 
-    <h3>2. The whole battle</h3>
+    <h3>The whole battle</h3>
     <p>A battle is a Markov chain on states <span class="mono">(a, d)</span>. Every roll removes 1 or 2 armies, so <span class="mono">a + d</span> always drops and the chain can't loop. Let <span class="mono">p<sub>k</sub></span> be the chance the attacker loses <span class="mono">k</span> armies on one roll. Then each state moves to <span class="mono">(a − k, d − (m − k))</span> with probability <span class="mono">p<sub>k</sub></span>.</p>
     <pre class="formula">π(A, D) = 1
 π(a − k, d − m + k) += π(a, d) · p_k(n_a, n_d)
@@ -188,9 +203,9 @@ W(a, d) = Σ_k p_k(n_a, n_d) · W(a − k, d − m + k)</pre>
     <pre class="formula">E[attackers left] = Σ j · π(j, 0)
 E[defenders left] = Σ j · π(0, j)
 Net = (D − E[defenders left]) − (A − E[attackers left])</pre>
-    <p>A positive net means the attacker should take more armies off the board than they lose. The work grows with <span class="mono">A × D</span>, so even 100 v 100 finishes in a few milliseconds. The answers are exact, with no simulation.</p>
+    <p>The work grows with <span class="mono">A × D</span>, so even 100 v 100 finishes in a few milliseconds. The answers are exact, with no simulation.</p>
 
-    <h3>3. Checked against a published table</h3>
+    <h3>Checked against a published table</h3>
     <p>Jason Osborne, <em>Markov Chains for the RISK Board Game Revisited</em> (Mathematics Magazine, 2003), as quoted by <a href="https://www.sciencenews.org/article/improving-odds-risk-0" target="_blank" rel="noopener">Science News</a>. Each cell shows <span class="mono">this page / Osborne</span>.</p>
     <div class="tbl">
       <table>
@@ -199,8 +214,8 @@ Net = (D − E[defenders left]) − (A − E[attackers left])</pre>
       </table>
     </div>
     <p id="checkSummary"></p>
-  </details>
-</main>
+  </div>
+</div>
 
 <script>
 (function () {
@@ -256,6 +271,8 @@ Net = (D − E[defenders left]) − (A − E[attackers left])</pre>
     return Math.round(Number(v));
   }
 
+  let states = [];
+
   function render() {
     const A = readInput("atk"), D = readInput("def");
     const err = $("err");
@@ -280,30 +297,32 @@ Net = (D − E[defenders left]) − (A − E[attackers left])</pre>
     $("net").className = "val " + (net >= 0.005 ? "pos" : net <= -0.005 ? "neg" : "");
     $("atkLeft").textContent = eA.toFixed(2);
     $("defLeft").textContent = eD.toFixed(2);
-    $("atkDelta").textContent = signed(-atkLoss) + " from " + A;
-    $("defDelta").textContent = signed(-defLoss) + " from " + D;
-    $("atkIfWin").textContent = win > 0.0005 ? (eA / win).toFixed(2) + " if attack wins" : "";
-    $("defIfWin").textContent = lose > 0.0005 ? (eD / lose).toFixed(2) + " if defence holds" : "";
+    $("atkSub").textContent = signed(-atkLoss) + (win > 0.0005 ? " · " + (eA / win).toFixed(2) + " if win" : "");
+    $("defSub").textContent = signed(-defLoss) + (lose > 0.0005 ? " · " + (eD / lose).toFixed(2) + " if hold" : "");
 
     // End states, ordered from best for the defender to best for the attacker.
-    const states = [];
+    states = [];
     for (let j = D; j >= 1; j--) states.push({ side: "d", n: j, p: defEnd[j] });
     for (let j = 1; j <= A; j++) states.push({ side: "a", n: j, p: atkEnd[j] });
-    drawChart(states);
-    drawList(states);
+    drawChart();
+    drawList();
   }
 
-  function drawChart(states) {
+  // Draws at the container's real pixel size so text stays crisp and the chart fills the leftover height.
+  function drawChart() {
+    const box = $("chart");
     const n = states.length;
-    const W = Math.max(340, n * 7), H = 180;
-    const padT = 22, padB = 20, padX = 4;
+    if (!n) return;
+    const H = Math.max(110, box.clientHeight);
+    const W = Math.max(box.clientWidth, n * 5);
+    const padT = 20, padB = 18, padX = 2;
     const plotH = H - padT - padB, bw = (W - 2 * padX) / n, gap = Math.min(2, bw * 0.2);
     const peak = Math.max(...states.map(s => s.p)) || 1;
     const x = i => padX + i * bw;
     const yOf = p => padT + plotH - (p / peak) * plotH;
     const color = s => "var(--" + (s.side === "a" ? "atk" : "def") + ")";
 
-    // Value labels: the tallest bars, at most 5, never closer than ~34px apart.
+    // Value labels: the tallest bars, at most 5, never closer than 40px apart.
     const ranked = states.map((s, i) => ({ s, i })).sort((u, v) => v.s.p - u.s.p);
     const labelled = [];
     for (const r of ranked) {
@@ -313,18 +332,14 @@ Net = (D − E[defenders left]) − (A − E[attackers left])</pre>
     // Survivor-count ticks: every bar if room, otherwise every k-th count.
     const every = [1, 2, 5, 10, 20, 25, 50].find(k => k * bw >= 18) || 100;
 
-    let svg = "";
-    for (let g = 1; g <= 2; g++) {
-      const y = padT + plotH - (g / 2) * plotH;
-      svg += '<line x1="' + padX + '" x2="' + (W - padX) + '" y1="' + y + '" y2="' + y + '" stroke="var(--line)" stroke-dasharray="2 3"/>';
-    }
+    let svg = '<line x1="' + padX + '" x2="' + (W - padX) + '" y1="' + (padT + plotH / 2) + '" y2="' + (padT + plotH / 2) + '" stroke="var(--line)" stroke-dasharray="2 3"/>';
     states.forEach((s, i) => {
       const y = yOf(s.p);
       svg += '<rect x="' + (x(i) + gap / 2).toFixed(2) + '" y="' + y.toFixed(2) + '" width="' + Math.max(0.6, bw - gap).toFixed(2) +
         '" height="' + (padT + plotH - y).toFixed(2) + '" rx="' + Math.min(2, bw / 4).toFixed(1) + '" fill="' + color(s) + '"><title>' +
         (s.side === "a" ? "Attacker wins with " : "Defender holds with ") + s.n + " left: " + pct(s.p) + "</title></rect>";
       if (s.n === 1 || s.n % every === 0) {
-        svg += '<text x="' + (x(i) + bw / 2).toFixed(2) + '" y="' + (padT + plotH + 13) + '" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="var(--mono)">' + s.n + "</text>";
+        svg += '<text x="' + (x(i) + bw / 2).toFixed(2) + '" y="' + (H - 4) + '" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="var(--mono)">' + s.n + "</text>";
       }
     });
     labelled.forEach(({ s, i }) => {
@@ -334,13 +349,12 @@ Net = (D − E[defenders left]) − (A − E[attackers left])</pre>
     const split = x(states.findIndex(s => s.side === "a"));
     svg += '<line x1="' + padX + '" x2="' + (W - padX) + '" y1="' + (padT + plotH) + '" y2="' + (padT + plotH) + '" stroke="var(--muted)"/>' +
       '<line x1="' + split + '" x2="' + split + '" y1="' + (padT - 6) + '" y2="' + H + '" stroke="var(--muted)" stroke-dasharray="3 3"/>';
-    $("chart").innerHTML = '<svg viewBox="0 0 ' + W + " " + H + '" style="' + (W > 340 ? "min-width:" + W + "px" : "") + '" role="img" aria-label="Probability of each end state">' + svg + "</svg>";
+    box.innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Probability of each end state">' + svg + "</svg>";
     // Keep the defender/attacker divide in view when the chart scrolls.
-    const box = $("chart");
-    if (box.scrollWidth > box.clientWidth) box.scrollLeft = split / W * box.scrollWidth - box.clientWidth / 2;
+    if (box.scrollWidth > box.clientWidth) box.scrollLeft = split - box.clientWidth / 2;
   }
 
-  function drawList(states) {
+  function drawList() {
     const LIMIT = 0.0005; // hide end states under 0.05% to keep the list readable
     const peak = Math.max(...states.map(s => s.p)) || 1;
     const shown = states.filter(s => s.p >= LIMIT).slice().reverse();
@@ -392,10 +406,19 @@ Net = (D − E[defenders left]) − (A − E[attackers left])</pre>
   }));
   ["atk", "def"].forEach(id => $(id).addEventListener("input", render));
 
-  // Remember whether the help panel was left open.
+  // Help overlay.
   const help = $("help");
-  try { if (localStorage.getItem("riskHelpOpen") === "1") help.open = true; } catch (e) {}
-  help.addEventListener("toggle", () => { try { localStorage.setItem("riskHelpOpen", help.open ? "1" : "0"); } catch (e) {} });
+  const openHelp = () => { help.hidden = false; $("helpClose").focus(); };
+  const closeHelp = () => { help.hidden = true; $("helpOpen").focus(); };
+  $("helpOpen").addEventListener("click", openHelp);
+  $("helpClose").addEventListener("click", closeHelp);
+  help.addEventListener("click", e => { if (e.target === help) closeHelp(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !help.hidden) closeHelp(); });
+
+  // Redraw the chart when the available space changes (rotation, browser bars).
+  let rt;
+  if (window.ResizeObserver) new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(drawChart, 50); }).observe($("chart"));
+  else window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(drawChart, 50); });
 
   render();
 })();
